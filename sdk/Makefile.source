@@ -45,6 +45,7 @@
 #        - protobuf:      libsgx_protobuf.a
 #        - ttls:          libsgx_ttls.a
 #        - mbedtls:       libsgx_mbedcrypto.a
+#        - sgx_mage:      libsgx_mage.a
 #  - Untrtusted libraries
 #        - ukey_exchange: libsgx_ukey_exchange.a
 #        - uprotected_fs: libsgx_uprotected_fs.a
@@ -67,7 +68,7 @@ LIBTCXX    := $(BUILD_DIR)/libsgx_tcxx.a
 LIBTSE     := $(BUILD_DIR)/libsgx_tservice.a
 
 .PHONY: components
-components: tstdc tcxx tservice trts tcrypto tkey_exchange ukey_exchange tprotected_fs uprotected_fs ptrace sample_crypto libcapable simulation signtool edger8r tcmalloc sgx_pcl sgx_encrypt sgx_tswitchless sgx_uswitchless pthread openmp protobuf ttls utls mbedtls
+components: tstdc tcxx tservice trts tcrypto tkey_exchange ukey_exchange tprotected_fs uprotected_fs ptrace sample_crypto libcapable simulation signtool edger8r tcmalloc sgx_pcl sgx_encrypt sgx_tswitchless sgx_mage sgx_uswitchless pthread openmp protobuf ttls utls mbedtls
 
 # ---------------------------------------------------
 #  tstdc
@@ -241,6 +242,11 @@ ttls: edger8r
 mbedtls:
 	$(MAKE) -C $(LINUX_EXTERNAL_DIR)/mbedtls
 
+.PHONY: sgx_mage
+sgx_mage:
+	$(MAKE) -C mage/
+
+
 # ---------------------------------------------------
 #  Untrusted libraries
 # ---------------------------------------------------
@@ -340,6 +346,7 @@ clean:
 	$(MAKE) -C switchless/sgx_uswitchless          clean
 	$(MAKE) -C tmm_rsrv/                           clean
 	$(MAKE) -C pthread                             clean
+	$(MAKE) -C mage/                               clean
 	$(MAKE) -C $(LINUX_EXTERNAL_DIR)/openmp        clean
 	$(MAKE) -C $(LINUX_EXTERNAL_DIR)/protobuf      clean
 	$(MAKE) -C ttls						           clean
