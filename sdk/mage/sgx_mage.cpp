@@ -26,7 +26,7 @@ sgx_status_t sgx_mage_derive_measurement(uint64_t mage_idx, sgx_measurement_t *m
 {
     sgx_status_t ret = SGX_SUCCESS;
 
-    sgx_mage_t* mage_hdr = (sgx_mage_t*)sgx_mage_sec_buf;
+    sgx_mage_t* mage_hdr = (sgx_mage_t*)get_sgx_mage_sec_buf_addr();
     if (mage_hdr->size * sizeof(sgx_mage_entry_t) + sizeof(sgx_mage_t) > SGX_MAGE_SEC_SIZE || mage_hdr->size <= mage_idx || mr == NULL) {
         return SGX_ERROR_UNEXPECTED;
     }
@@ -39,8 +39,10 @@ sgx_status_t sgx_mage_derive_measurement(uint64_t mage_idx, sgx_measurement_t *m
         return SGX_ERROR_UNEXPECTED;
     }
 
-    memcpy(reinterpret_cast<uint8_t*>(sha_handle) + HANDLE_HASH_OFFSET, mage->digest, SHA256_DIGEST_SIZE);
-    memcpy(reinterpret_cast<uint8_t*>(sha_handle) + HANDLE_SIZE_OFFSET, &mage->size, sizeof(mage->size));
+    //memcpy(reinterpret_cast<uint8_t*>(sha_handle) + HANDLE_HASH_OFFSET, mage->digest, SHA256_DIGEST_SIZE);
+    //memcpy(reinterpret_cast<uint8_t*>(sha_handle) + HANDLE_SIZE_OFFSET, &mage->size, sizeof(mage->size));
+    //
+    memcpy(reinterpret_cast<uint8_t*>(sha_handle), &mage->sha256_state, sizeof(SHA256_CTX_mage));
 
     uint64_t page_offset = mage->offset;
     uint8_t* source = reinterpret_cast<uint8_t*>(reinterpret_cast<uint64_t>(sgx_mage_sec_buf));

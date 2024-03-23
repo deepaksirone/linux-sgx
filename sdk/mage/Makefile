@@ -32,12 +32,14 @@
 include ../../buildenv.mk
 
 CXXFLAGS += $(ENCLAVE_CXXFLAGS) -Werror -fno-exceptions -fno-rtti
+PREBUILT_OPENSSL_DIR := $(LINUX_EXTERNAL_DIR)/dcap_source/prebuilt/openssl
 
 CPPFLAGS := -I$(COMMON_DIR)/inc/internal \
             -I$(COMMON_DIR)/inc          \
             -I$(COMMON_DIR)/inc/tlibc    \
             -I$(COMMON_DIR)/../sdk/trts  \
-            -I$(LINUX_PSW_DIR)
+            -I$(LINUX_PSW_DIR)		 \
+	    -I$(PREBUILT_OPENSSL_DIR)/inc
 
 OBJ := sgx_mage.o
 
