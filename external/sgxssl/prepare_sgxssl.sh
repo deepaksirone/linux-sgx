@@ -72,7 +72,8 @@ fi
 pushd $top_dir/Linux/
 patched=$(grep -c 2023-5678 build_openssl.sh)
 if [ '0' -eq $patched ]; then
-	sed -i '141a patch --merge -p1 < ../../../../dcap-trunk/dcap_source/prebuilt/openssl/openssl.CVE-2023-5678.patch || exit 1 ' build_openssl.sh
+	#sed -i '141a patch --merge -p1 < ../../../../dcap-trunk/dcap_source/prebuilt/openssl/openssl.CVE-2023-5678.patch || exit 1 ' build_openssl.sh
+	sed -i '141a patch --merge -p1 < ../../../dcap_source/prebuilt/openssl/openssl.CVE-2023-5678.patch || exit 1 ' build_openssl.sh
 fi
 if [ "$MITIGATION" != "" ]; then
         make clean all LINUX_SGX_BUILD=1 DEBUG=$DEBUG

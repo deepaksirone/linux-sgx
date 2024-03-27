@@ -29,11 +29,44 @@
  *
  */
 
+struct evp_md_ctx_st {
+    const void *reqdigest;    /* The original requested digest */
+    const void *digest;
+    void *engine;             /* functional reference if 'digest' is
+                               * ENGINE-provided */
+    unsigned long flags;
+    void *md_data;
+    /* Public key context for sign/verify */
+    void *pctx;
+    /* Update function: usually copied from EVP_MD */
+    int (*update) (void *ctx, const void *data, unsigned long count);
+
+    /*
+     * Opaque ctx returned from a providers digest algorithm implementation
+     * OSSL_FUNC_digest_newctx()
+     */
+    void *algctx;
+    void *fetched_digest;
+};
+
 #include "se_tcrypto_common.h"
+//#include "evp_local.h"
+
 #include <openssl/evp.h>
 #include <openssl/err.h>
+#include <openssl/sha.h>
 #include "sgx_tcrypto.h"
 #include "stdlib.h"
+#include "string.h"
+
+//#include <openssl/core.h>
+//#include <openssl/evp.h>
+//#include <openssl/err.h>
+//#include <openssl/asn1.h>        /* evp_local.h needs it */
+//#include <openssl/safestack.h>   /* evp_local.h needs it */
+//#include "crypto/evp.h"    /* evp_local.h needs it */
+//#include "evp_local.h"
+
 
 /* Allocates and initializes sha256 state
 * Parameters:
@@ -79,6 +112,26 @@ sgx_status_t sgx_sha256_init(sgx_sha_state_handle_t* p_sha_handle)
     }
 
     return retval;
+}
+
+sgx_status_t sgx_sha256_replace_algctx(sgx_sha_state_handle_t p_sha_handle, void *sha256_ctx) {
+	EVP_MD_CTX* ctx = (EVP_MD_CTX*) p_sha_handle;
+
+	if (ctx == NULL) {
+		return SGX_ERROR_INVALID_PARAMETER;
+	}
+
+	if (ctx->algctx != NULL) {
+		memcpy(ctx->algctx, sha256_ctx, sizeof(SHA256_CTX));
+		return SGX_SUCCESS;
+	}
+
+	if (ctx->md_data != NULL) {
+		memcpy(ctx->md_data, sha256_ctx, sizeof(SHA256_CTX));
+		return SGX_SUCCESS;
+	}
+
+	return SGX_ERROR_UNEXPECTED;
 }
 
 /* Updates sha256 has calculation based on the input message

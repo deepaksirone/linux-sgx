@@ -288,7 +288,7 @@ ENCLAVE_ASFLAGS = $(MITIGATION_ASFLAGS)
 # open sourced string + open sourced math.
 #
 # IPP + open sourced string + open sourced math
-USE_OPT_LIBS ?= 1
+USE_OPT_LIBS ?= 0
 USE_CRYPTO_LIB ?= 1
 USE_STRING_LIB ?= 1
 USE_MATH_LIB ?= 1

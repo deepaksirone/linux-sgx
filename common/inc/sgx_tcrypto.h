@@ -256,6 +256,9 @@ extern "C" {
     sgx_status_t SGXAPI sgx_sha256_get_hash(sgx_sha_state_handle_t sha_handle, sgx_sha256_hash_t *p_hash);
     sgx_status_t SGXAPI sgx_sha1_get_hash(sgx_sha_state_handle_t sha_handle, sgx_sha1_hash_t *p_hash);
 
+    // For MAGE
+    sgx_status_t SGXAPI sgx_sha256_replace_algctx(sgx_sha_state_handle_t p_sha_handle, void *sha256_ctx);
+
    /** Cleans up SHA state
     *
     * Parameters:

@@ -11,7 +11,28 @@
 #define HANDLE_HASH_OFFSET 168
 #define SHA256_DIGEST_SIZE 32
 
-const uint8_t __attribute__((section(SGX_MAGE_SEC_NAME))) sgx_mage_sec_buf[SGX_MAGE_SEC_SIZE] __attribute__((aligned (SE_PAGE_SIZE))) = {};
+const volatile uint8_t __attribute__((section(SGX_MAGE_SEC_NAME))) sgx_mage_sec_buf[SGX_MAGE_SEC_SIZE] __attribute__((aligned (SE_PAGE_SIZE))) = {};
+
+// Hack to not include the openssl header by replacing all typed pointers with void *
+struct evp_md_ctx_st {
+    const void *reqdigest;    /* The original requested digest */
+    const void *digest;
+    void *engine;             /* functional reference if 'digest' is
+                               * ENGINE-provided */
+    unsigned long flags;
+    void *md_data;
+    /* Public key context for sign/verify */
+    void *pctx;
+    /* Update function: usually copied from EVP_MD */
+    int (*update) (void *ctx, const void *data, size_t count);
+
+    /*
+     * Opaque ctx returned from a providers digest algorithm implementation
+     * OSSL_FUNC_digest_newctx()
+     */
+    void *algctx;
+    void *fetched_digest;
+};
 
 uint64_t sgx_mage_get_size()
 {
@@ -27,7 +48,7 @@ sgx_status_t sgx_mage_derive_measurement(uint64_t mage_idx, sgx_measurement_t *m
     sgx_status_t ret = SGX_SUCCESS;
 
     sgx_mage_t* mage_hdr = (sgx_mage_t*)get_sgx_mage_sec_buf_addr();
-    if (mage_hdr->size * sizeof(sgx_mage_entry_t) + sizeof(sgx_mage_t) > SGX_MAGE_SEC_SIZE || mage_hdr->size <= mage_idx || mr == NULL) {
+    if ((mage_hdr->size * sizeof(sgx_mage_entry_t) + sizeof(sgx_mage_t) > SGX_MAGE_SEC_SIZE) || (mage_hdr->size <= mage_idx) || mr == NULL) {
         return SGX_ERROR_UNEXPECTED;
     }
 
@@ -39,10 +60,21 @@ sgx_status_t sgx_mage_derive_measurement(uint64_t mage_idx, sgx_measurement_t *m
         return SGX_ERROR_UNEXPECTED;
     }
 
+
+    // TODO: Fix this :-)
     //memcpy(reinterpret_cast<uint8_t*>(sha_handle) + HANDLE_HASH_OFFSET, mage->digest, SHA256_DIGEST_SIZE);
     //memcpy(reinterpret_cast<uint8_t*>(sha_handle) + HANDLE_SIZE_OFFSET, &mage->size, sizeof(mage->size));
     //
-    memcpy(reinterpret_cast<uint8_t*>(sha_handle), &mage->sha256_state, sizeof(SHA256_CTX_mage));
+    //printf("[sgx_mage_derive_measurement] Before memcpy for sha256\n");
+    //void *algctx = ((struct evp_md_ctx_st *)sha_handle)->algctx;
+    //void *md_data = ((struct evp_md_ctx_st *)sha_handle)->md_data;
+    if (sgx_sha256_replace_algctx(sha_handle, (void *)&mage->sha256_state) != SGX_SUCCESS) {
+    	// memcpy(reinterpret_cast<uint8_t*>(algctx), &mage->sha256_state, sizeof(SHA256_CTX_mage));
+	return SGX_ERROR_UNEXPECTED;
+    }
+
+    //printf("[sgx_mage_derive_measurement] After memcpy for sha256\n");
+
 
     uint64_t page_offset = mage->offset;
     uint8_t* source = reinterpret_cast<uint8_t*>(reinterpret_cast<uint64_t>(sgx_mage_sec_buf));
