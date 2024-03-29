@@ -136,6 +136,7 @@ void sig_handler(int signum, siginfo_t* siginfo, void *priv)
             unsigned int ret = enclave->ecall(ECMD_EXCEPT, param->ocall_table, NULL);
             if(SGX_SUCCESS == ret)
             {
+		SE_TRACE(SE_TRACE_NOTICE, "ERESUME executed for fn: %ld\n", param->fn);
                 //ERESUME execute
                 return;
             }
