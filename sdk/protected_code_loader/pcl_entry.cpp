@@ -188,6 +188,119 @@ Label_erase_key:
     return ret;
 }
 
+
+// Similar to pcl_entry but uses an input key instead of getting a sealed key
+sgx_status_t pcl_entry_bellerophon(void *elf_base, uint8_t *key)
+{
+    sgx_status_t ret = SGX_SUCCESS;  
+    pcl_table_t* tbl = &g_tbl;
+    int memcmpret = 0;
+    sgx_sha256_hash_t hash = {0};
+    //sgx_aes_gcm_128bit_key_t key = {0};
+
+    // Verify PCL state:
+    if(PCL_CIPHER != tbl->pcl_state)
+    {
+        return SGX_ERROR_UNEXPECTED;
+    }
+    tbl->pcl_state = PCL_RUNNING;
+
+    // ELF base address used by pcl_is_outside_enclave and pcl_is_within_enclave
+    g_pcl_imagebase = (uintptr_t)elf_base;
+
+    // Get key from sealed blob:
+    uint32_t guid_size = SGX_PCL_GUID_SIZE;
+    //uint32_t key_size = SGX_AESGCM_KEY_SIZE;
+
+    // Verify the buffer size: 
+    /*if(PCL_SEALED_BLOB_SIZE != tbl->sealed_blob_size)
+    {
+        return SGX_ERROR_UNEXPECTED;
+    }
+    system_features_t * csi = (system_features_t *)ms;
+    if(!(pcl_is_outside_enclave(key, sizeof(sgx_aes_gcm_128bit_key_t))))
+    {
+        return SGX_ERROR_UNEXPECTED;
+    }
+    sgx_lfence();*/
+
+    if(NULL == key)
+    {
+        return SGX_ERROR_UNEXPECTED;
+    }
+    if(!(pcl_is_outside_enclave(key, sizeof(sgx_aes_gcm_128bit_key_t))))
+    {
+        return SGX_ERROR_UNEXPECTED;
+    }
+
+    // LFENCE after boundary check 
+    sgx_lfence();
+
+    // Copy sealed blob into enclave binary. 
+    /*pcl_memcpy(tbl->sealed_blob, sealed_blob, PCL_SEALED_BLOB_SIZE);
+    
+    // Unseal the sealed blob: 
+    ret = pcl_unseal_data(
+            (const sgx_sealed_data_t*)tbl->sealed_blob, // Sealed data
+            tbl->pcl_guid,                              // AAD buffer
+            &guid_size,                                 // pointer to AAD buffer length 
+            key,                                        // Resulting key
+            &key_size);                                 // Size of resulting key
+    if(SGX_SUCCESS != ret)
+    {
+        goto Label_erase_key;
+    }*/
+    if((sizeof(tbl->pcl_guid) != guid_size))
+    {
+        ret = SGX_ERROR_UNEXPECTED;
+        goto Label_erase_key;
+    }
+    
+    // Verify key hash matches:
+    ret = pcl_sha256(key, SGX_AESGCM_KEY_SIZE, hash);
+    if(SGX_SUCCESS != ret)
+    {
+        goto Label_erase_key; 
+    }
+    memcmpret = pcl_consttime_memequal(hash, tbl->decryption_key_hash, sizeof(sgx_sha256_hash_t));
+    pcl_volatile_memset((volatile void*)hash, 0, sizeof(sgx_sha256_hash_t)); // Scrub hash
+    if(1 != memcmpret)
+    {
+        ret = SGX_ERROR_PCL_SHA_MISMATCH;
+        goto Label_erase_key;
+    }
+
+    for(uint32_t i = 0;i< tbl->num_rvas;i++)
+    {
+        size_t size = tbl->rvas_sizes_tags_ivs[i].size;
+        unsigned char* ciphertext = (unsigned char *)((uint64_t)elf_base + tbl->rvas_sizes_tags_ivs[i].rva);
+        unsigned char* plaintext = ciphertext; // decrypt in place
+        unsigned char* tag = (unsigned char *)&(tbl->rvas_sizes_tags_ivs[i].tag);
+        unsigned char* iv  = (unsigned char *)&(tbl->rvas_sizes_tags_ivs[i].iv.val);
+        // Verify ciphertext is inside the enclave:
+        if(!(pcl_is_within_enclave(ciphertext, size)))
+        {
+            ret = SGX_ERROR_UNEXPECTED; 
+            goto Label_erase_key;
+        }
+        ret = pcl_gcm_decrypt(plaintext, ciphertext, size, NULL, 0, key, iv, tag);
+        if(SGX_SUCCESS != ret)
+        {
+            goto Label_erase_key;
+        }
+    }
+
+    // Return success:
+    ret = SGX_SUCCESS;
+    
+Label_erase_key:
+    // Erase key:
+    pcl_volatile_memset((volatile void*)key, 0, sizeof(sgx_aes_gcm_128bit_key_t));
+    tbl->pcl_state = PCL_DONE;
+    return ret;
+}
+
+
 /*
  * @func pcl_bswap32 swaps a 32bit value endianity
  * @param uint32_t val, input value
