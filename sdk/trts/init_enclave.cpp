@@ -102,6 +102,7 @@ extern "C" int init_enclave(void *enclave_base, void *ms)
         return -1;
     }
 
+    /*
     if(NULL != pcl_entry)
     {
         // LFENCE before pcl_entry
@@ -111,7 +112,7 @@ extern "C" int init_enclave(void *enclave_base, void *ms)
         {
             return -1;
         }
-    }
+    }*/
 
     // relocation
     if(0 != relocate_enclave(enclave_base))

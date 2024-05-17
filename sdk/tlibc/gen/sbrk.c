@@ -58,8 +58,8 @@ extern int mm_uncommit(void* addr, size_t size);
 
 int heap_init(void *_heap_base, size_t _heap_size, size_t _heap_min_size, int _is_edmm_supported)
 {
-    if (heap_base != NULL)
-        return SGX_ERROR_UNEXPECTED;
+    /*if (heap_base != NULL)
+        return SGX_ERROR_UNEXPECTED;*/
 
     if ((_heap_base == NULL) || (((size_t) _heap_base) & (SE_PAGE_SIZE - 1)))
         return SGX_ERROR_UNEXPECTED;
@@ -70,7 +70,7 @@ int heap_init(void *_heap_base, size_t _heap_size, size_t _heap_min_size, int _i
     if (_heap_min_size & (SE_PAGE_SIZE - 1))
         return SGX_ERROR_UNEXPECTED;
 
-    if (_heap_size > SIZE_MAX - (size_t)heap_base)
+    if (_heap_size > SIZE_MAX - (size_t)_heap_base)
         return SGX_ERROR_UNEXPECTED;
 
     heap_base = _heap_base;

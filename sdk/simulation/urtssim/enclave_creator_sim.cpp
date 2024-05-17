@@ -254,7 +254,9 @@ int EnclaveCreatorSim::initialize(sgx_enclave_id_t enclave_id)
     info.size = sizeof(system_features_t);
     info.version = SDK_VERSION_1_5;
     info.sealed_key = enclave->get_sealed_key();
+    SE_TRACE(SE_TRACE_DEBUG, "Before INIT ecall\n");
     status = enclave->ecall(ECMD_INIT_ENCLAVE, NULL, reinterpret_cast<void *>(&info));
+    SE_TRACE(SE_TRACE_DEBUG, "After INIT ecall\n");
     //free the tcs used by initialization;
     enclave->get_thread_pool()->reset();
     if(SGX_SUCCESS == status)

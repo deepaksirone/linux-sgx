@@ -97,6 +97,12 @@ vpath %.cpp $(TRTS_DIR):$(TINST_DIR)
 vpath %.S   $(LOWLIB_DIR):$(TLDR_DIR):$(XSAVE_DIR)
 vpath %.c   $(TLS_DIR):$(TLDR_DIR)
 
+CFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(CFLAGS))
+CXXFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(CXXFLAGS))
+TCFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(TCFLAGS))
+TCXXFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(TCXXFLAGS))
+
+
 # ------------------------------------------------------------
 .PHONY: all
 all: $(LIBTRTS) | $(BUILD_DIR)
@@ -106,29 +112,61 @@ $(LIBTRTS): $(TRTS_OBJS) $(TINST_OBJS) $(LOWLIB_OBJS) $(TLS_OBJS) $(TLDR_OBJS)
 	$(AR) rcsD $@ $(TRTS_OBJS) $(TINST_OBJS) $(LOWLIB_OBJS) $(TLS_OBJS) $(TLDR_OBJS)
 
 # ------------------------------------------------------------
-$(TRTS1_OBJS):    CPPFLAGS += -I$(COMMON_DIR)/inc/tlibc \
-                             -I$(SIM_DIR)/tinst/
+$(TRTS1_OBJS): %.o:%.cpp  
+	#CPPFLAGS += -I$(COMMON_DIR)/inc/tlibc \
+        #                    -I$(SIM_DIR)/tinst/
+	$(CXX) -c $(CXXFLAGS) -I$(COMMON_DIR)/inc/tlibc -I$(SIM_DIR)/tinst/ $(CPPFLAGS) $< -o $@
+	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
+	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
+	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
+
 $(TRTS2_OBJS): %.o:%.cpp
 	$(CXX) -c $(filter-out -fstack-protector-strong, $(CXXFLAGS)) -I$(SIM_DIR)/tinst/ $(CPPFLAGS) $< -o $@
+	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
+	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
+	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
+
 
 
 # Explicitly disable optimization for tRTS simulation library,
 # since the '_SE3' function has assumptions on stack layout.
 # c.f. ../../tinst/Makefile
-$(TINST_OBJS):   CPPFLAGS += -I$(SIM_DIR)/assembly/    \
-                             -I$(SIM_DIR)/assembly/linux \
-                             -I$(SIM_DIR)/uinst/       \
-                             -I$(LINUX_SDK_DIR)/selib/ \
-                             -O0
+$(TINST_OBJS): %.o:%.cpp  
+	#CPPFLAGS += -I$(SIM_DIR)/assembly/    \
+        #                     -I$(SIM_DIR)/assembly/linux \
+        #                     -I$(SIM_DIR)/uinst/       \
+        #                     -I$(LINUX_SDK_DIR)/selib/ \
+        #                     -O0
+	$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) -I$(SIM_DIR)/assembly/ -I$(SIM_DIR)/assembly/linux -I$(SIM_DIR)/uinst/  -I$(LINUX_SDK_DIR)/selib/ -O0 $< -o $@
+	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
+	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
+	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
 
-$(TLS_OBJS):     CPPFLAGS += -I$(SIM_DIR)/assembly/ \
-                             -I$(SIM_DIR)/assembly/linux \
-                             -I$(SIM_DIR)/uinst/
+$(TLS_OBJS): %.o:%.c   
+	#CPPFLAGS += -I$(SIM_DIR)/assembly/ \
+        #                     -I$(SIM_DIR)/assembly/linux \
+        #                     -I$(SIM_DIR)/uinst/
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -I$(SIM_DIR)/assembly/ -I$(SIM_DIR)/assembly/linux -I$(SIM_DIR)/uinst/ $< -o $@
+	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
+	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
+	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
 
-$(TLDR_C_OBJS):  CPPFLAGS += -I$(COMMON_DIR)/inc/internal/linux/ \
-                             -I$(SIM_DIR)/assembly/
+$(TLDR_C_OBJS): %.o:%.c
+	#CPPFLAGS += -I$(COMMON_DIR)/inc/internal/linux/ \
+        #                     -I$(SIM_DIR)/assembly/
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -I$(COMMON_DIR)/inc/internal/linux/ -I$(SIM_DIR)/assembly/ $< -o $@
+	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
+	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
+	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
 
-$(TLDR_ASM_OBJS): ASFLAGS += -I$(SIM_DIR)/assembly/
+
+$(TLDR_ASM_OBJS): %.o:%.S 
+	#ASFLAGS += -I$(SIM_DIR)/assembly/
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) $(ASFLAGS) -I$(SIM_DIR)/assembly/ $< -o $@
+	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
+	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
+	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
+
 
 $(BUILD_DIR):
 	$(MKDIR) $@

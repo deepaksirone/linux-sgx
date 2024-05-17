@@ -56,6 +56,10 @@ OBJS1 := init_enclave.o  \
         trts_version.o \
         trts_add_trim.o
 
+CFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(CFLAGS))
+CXXFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(CXXFLAGS))
+TCFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(TCFLAGS))
+TCXXFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(TCXXFLAGS))
 OBJS2 := trts_nsp.o
 
 OBJS3 := ema_rt.o
@@ -68,17 +72,29 @@ all: $(OBJS) elf_parser
 
 $(OBJS1): %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) -fPIC $< -o $@
+	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
+	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
+	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
 	objcopy $@ --set-section-flags .niprod='alloc','readonly'
 
 $(OBJS2): %.o: %.cpp
 	$(CXX) -c $(TCXXFLAGS) $(CPPFLAGS) -fPIC $< -o $@
+	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
+	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
+	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
 
 $(OBJS3): %.o: %.c
 	$(CC) -c $(TCFLAGS) $(CFLAGS) -fPIC $< -o $@
+	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
+	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
+	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
 
 $(OBJS4): %.o: %.c
 	$(CC) -mavx2 -O3 -masm=intel $(filter-out -O2,$(CFLAGS)) $(TCFLAGS) \
 		-I$(COMMON_DIR)/inc/internal -I$(COMMON_DIR)/inc -c $< -o $@
+	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
+	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
+	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
 
 .PHONY: elf_parser
 elf_parser: $(OBJS)

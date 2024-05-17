@@ -190,7 +190,7 @@ Label_erase_key:
 
 
 // Similar to pcl_entry but uses an input key instead of getting a sealed key
-sgx_status_t pcl_entry_bellerophon(void *elf_base, uint8_t *key)
+extern "C" sgx_status_t pcl_entry_bellerophon(void *elf_base, uint8_t *key)
 {
     sgx_status_t ret = SGX_SUCCESS;  
     pcl_table_t* tbl = &g_tbl;

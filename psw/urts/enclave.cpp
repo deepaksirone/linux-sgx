@@ -306,6 +306,7 @@ sgx_status_t CEnclave::error_trts2urts(unsigned int trts_error)
 
 sgx_status_t CEnclave::ecall(const int proc, const void *ocall_table, void *ms, const bool is_switchless)
 {
+    SE_TRACE(SE_TRACE_DEBUG, "Executing ecall: %d\n", proc);
     if(se_try_rdlock(&m_rwlock))
     {
         //Maybe the enclave has been destroyed after acquire/release m_rwlock. See CEnclave::destroy()
@@ -397,7 +398,12 @@ sgx_status_t CEnclave::ecall(const int proc, const void *ocall_table, void *ms, 
                 }*/
             }
 
+	    SE_TRACE(SE_TRACE_DEBUG, "Before do_ecall\n", proc);
+
             ret = do_ecall(proc, m_ocall_table, ms, trust_thread);
+
+	    SE_TRACE(SE_TRACE_DEBUG, "After do_ecall\n", proc);
+
             if(SGX_PTHREAD_EXIT == ret)
                 //If the ECALL exists by pthread_exit(), then reset the tcs's reference to "0" directly.
                 trust_thread->reset_ref();
