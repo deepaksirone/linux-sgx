@@ -76,6 +76,11 @@ uintptr_t g_pcl_imagebase = 0;
  * Respective error returned from pcl_unseal_data, pcl_sha256, pcl_gcm_decrypt or pcl_increment_iv
  * SGX_SUCCESS if successfull
  */
+
+// Gets the key for decrypting the enclave from the decryption enclave
+// Should be in the nipx section
+extern "C" sgx_status_t get_key_bellerophon(uint8_t *key);
+
 sgx_status_t pcl_entry(void* elf_base, void* ms)
 {
     sgx_status_t ret = SGX_SUCCESS;  
@@ -190,13 +195,15 @@ Label_erase_key:
 
 
 // Similar to pcl_entry but uses an input key instead of getting a sealed key
-extern "C" sgx_status_t pcl_entry_bellerophon(void *elf_base, uint8_t *key)
+sgx_status_t pcl_entry_bellerophon(void *elf_base, uint8_t *key)
 {
     sgx_status_t ret = SGX_SUCCESS;  
     pcl_table_t* tbl = &g_tbl;
     int memcmpret = 0;
     sgx_sha256_hash_t hash = {0};
-    //sgx_aes_gcm_128bit_key_t key = {0};
+    sgx_aes_gcm_128bit_key_t key_bellerophon = {0};
+    
+    get_key_bellerophon(key_bellerophon);
 
     // Verify PCL state:
     if(PCL_CIPHER != tbl->pcl_state)
@@ -228,7 +235,8 @@ extern "C" sgx_status_t pcl_entry_bellerophon(void *elf_base, uint8_t *key)
     {
         return SGX_ERROR_UNEXPECTED;
     }
-    if(!(pcl_is_outside_enclave(key, sizeof(sgx_aes_gcm_128bit_key_t))))
+
+    if((pcl_is_outside_enclave(key, sizeof(sgx_aes_gcm_128bit_key_t))))
     {
         return SGX_ERROR_UNEXPECTED;
     }
