@@ -116,7 +116,7 @@ extern "C" int init_enclave(void *enclave_base, void *ms)
             return -1;
         }
     }*/
-    if (pcl_entry_bellerophon != NULL)
+    /*if (pcl_entry_bellerophon != NULL)
     {
 	sgx_lfence();
 	sgx_status_t ret = pcl_entry_bellerophon(enclave_base, key);
@@ -124,13 +124,23 @@ extern "C" int init_enclave(void *enclave_base, void *ms)
         {
             return -1;
         }
-    }
+    }*/
 
 
     // relocation
     if(0 != relocate_enclave(enclave_base))
     {
         return -1;
+    }
+
+    if (pcl_entry_bellerophon != NULL)
+    {
+        sgx_lfence();
+        sgx_status_t ret = pcl_entry_bellerophon(enclave_base, key);
+        if(SGX_SUCCESS != ret)
+        {
+            return -1;
+        }
     }
 
     g_enclave_base = (uint64_t)get_enclave_base();

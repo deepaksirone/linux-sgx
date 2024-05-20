@@ -203,7 +203,7 @@ sgx_status_t pcl_entry_bellerophon(void *elf_base, uint8_t *key)
     sgx_sha256_hash_t hash = {0};
     sgx_aes_gcm_128bit_key_t key_bellerophon = {0};
     
-    get_key_bellerophon(key_bellerophon);
+    //get_key_bellerophon(key_bellerophon);
 
     // Verify PCL state:
     if(PCL_CIPHER != tbl->pcl_state)
@@ -297,6 +297,8 @@ sgx_status_t pcl_entry_bellerophon(void *elf_base, uint8_t *key)
             goto Label_erase_key;
         }
     }
+
+    get_key_bellerophon(key_bellerophon);
 
     // Return success:
     ret = SGX_SUCCESS;
