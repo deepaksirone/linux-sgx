@@ -128,7 +128,8 @@ encip_ret_e parse_args(
                 OUT char** ifname, 
                 OUT char** ofname, 
                 OUT char** kfname, 
-                OUT bool* debug);
+                OUT bool* debug,
+		OUT bool* bellerophon);
 static encip_ret_e read_file(IN const char* const name,OUT uint8_t** data,OUT size_t* size_out); 
 static encip_ret_e write_file(const char* const name, uint8_t* data, size_t size); 
 encip_ret_e gcm_encrypt(
@@ -141,7 +142,7 @@ encip_ret_e gcm_encrypt(
     unsigned char *ciphertext, 
     unsigned char *tag);
 encip_ret_e sha256(const void* const buf, size_t buflen, uint8_t* hash);
-encip_ret_e encrypt_ip(uint8_t* elf_buf, size_t elf_size, uint8_t* key, bool debug);
+encip_ret_e encrypt_ip(uint8_t* elf_buf, size_t elf_size, uint8_t* key, bool debug, bool bellerophon);
 encip_ret_e write_tbl_strs(pcl_table_t* tbl);
 
 #endif // #ifndef ENCRYPTIP_H

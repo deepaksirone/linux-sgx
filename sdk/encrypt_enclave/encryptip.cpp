@@ -66,13 +66,14 @@ int main(int argc, IN char *argv[])
     char* enclave_in_name = NULL;
     char* enclave_out_name = NULL;
     bool debug = false;
+    bool bellerophon = false;
     uint8_t* enclave_buf = NULL;
     uint8_t* key_buf = NULL;
     size_t key_size = 0;
     size_t enclave_size = 0;
 
     // Parse the arguments: 
-    encip_ret_e ret = parse_args(argc, argv, &enclave_in_name, &enclave_out_name, &keyfile_name, &debug);
+    encip_ret_e ret = parse_args(argc, argv, &enclave_in_name, &enclave_out_name, &keyfile_name, &debug, &bellerophon);
     if(ENCIP_ERROR(ret))
         return (int)ret;
 
@@ -97,7 +98,7 @@ int main(int argc, IN char *argv[])
     }
     
     // Modify enclave for PCL:
-    ret = encrypt_ip(enclave_buf, enclave_size, key_buf, debug);
+    ret = encrypt_ip(enclave_buf, enclave_size, key_buf, debug, bellerophon);
     if(ENCIP_ERROR(ret)) 
         goto Label_free_key_and_enclave_buffers;
 
@@ -125,7 +126,7 @@ Label_free_enclave_buffer:
  * @return true iff section content can be modified without disrupting 
  * enclave signing or loading flows
  */
-static inline bool can_modify(IN const char* const sec_name, bool debug)
+static inline bool can_modify(IN const char* const sec_name, bool debug, bool bellerophon)
 {
 
     /*
@@ -161,15 +162,37 @@ static inline bool can_modify(IN const char* const sec_name, bool debug)
         ".strtab",               // Required for comfortable debugging
     };
 
+    static char const* const bellerophon_encrypted_sections[3] =
+    {
+        ".encrypt.text",             
+        ".encrypt.data",       
+        ".encrypt.rodata", 
+    };
+
+
     if(NULL == sec_name)
         return false;
-    uint32_t num_sec_names = debug ? NUM_NON_IP_OR_DEBUG_SEC_NAMES : NUM_NON_IP_SEC_NAMES;
-    for(uint32_t secidx = 0; secidx < num_sec_names; secidx++)
-    {
-        if(!strcmp(non_ip_sec_names[secidx],sec_name))
-            return false;
+
+    //uint32_t num_sec_names = debug ? NUM_NON_IP_OR_DEBUG_SEC_NAMES : NUM_NON_IP_SEC_NAMES;
+
+    if (!bellerophon) {
+	uint32_t num_sec_names = debug ? NUM_NON_IP_OR_DEBUG_SEC_NAMES : NUM_NON_IP_SEC_NAMES;
+    	for(uint32_t secidx = 0; secidx < num_sec_names; secidx++)
+    	{
+        	if(!strcmp(non_ip_sec_names[secidx],sec_name))
+            	return false;
+    	}
+    	return true;
+    } else {
+	for(uint32_t secidx = 0; secidx < 3; secidx++)
+        {
+                if(!strcmp(bellerophon_encrypted_sections[secidx],sec_name))
+                	return true;
+        }
+        return false;
     }
-    return true;
+
+
 }
 
 /*
@@ -398,6 +421,56 @@ static inline encip_ret_e update_flags(uint16_t secidx, INOUT pcl_data_t* dat)
     return ENCIP_SUCCESS;
 }
 
+static encip_ret_e find_decrypt_stub_section(
+		IN pcl_data_t* dat,
+		IN uint8_t* elf_buf,
+		size_t elf_size,
+		OUT pcl_table_t* tbl)
+{
+	if(
+       	   NULL == dat     ||
+           NULL == elf_buf ||
+           NULL == tbl)
+        	return ENCIP_ERROR_ENCSECS_INVALID_PARAM;
+
+	char* sec_name = NULL;
+	uint32_t num_rvas = tbl->num_rvas + 1; // Insert this as the last entry
+    	for(uint16_t secidx = 1; secidx < dat->nsections; secidx++)
+    	{
+        	if(dat->elf_sec[secidx].sh_name >= dat->elf_sec[dat->shstrndx].sh_size)
+            		return ENCIP_ERROR_PARSE_ELF_INVALID_IMAGE;
+        	sec_name = dat->sections_names + dat->elf_sec[secidx].sh_name;
+		size_t size = dat->elf_sec[secidx].sh_size;
+		if((uint8_t*)sec_name > elf_buf + elf_size)
+           		 return ENCIP_ERROR_PARSE_ELF_INVALID_IMAGE;
+
+		if (!strcmp(sec_name, ".decrypt_stub")) {
+			if(PCL_MAX_NUM_ENCRYPTED_SECTIONS <= num_rvas)
+                	{
+                    	/* 
+                     		* No more empty entries in PCL table. 
+                     		* To fix - redefine PCL_MAX_NUM_ENCRYPTED_SECTIONS in pcl_common.h
+                     	*/
+                    		printf("Error: No more empty entries in Intel(R) SGX PCL table\n");
+                    		printf("To fix - redefine PCL_MAX_NUM_ENCRYPTED_SECTIONS in pcl_common.h\n");
+                    		return ENCIP_ERROR_ENCSECS_RVAS_OVERFLOW;
+                	}
+
+			// Insert entry to table:
+                	tbl->rvas_sizes_tags_ivs[num_rvas].rva  = dat->elf_sec[secidx].sh_addr;
+                	tbl->rvas_sizes_tags_ivs[num_rvas].size = size;
+			
+			return ENCIP_SUCCESS;
+		}
+
+	}
+
+	printf("Error: Did not find .decrypt_stub section\n");
+	return ENCIP_ERROR_PARSE_ELF_INVALID_IMAGE;
+}
+
+
+
 /*
  * @func encrypt_or_clear_ip_sections modifies the content of some sections. 
  * 1. If section content cannot be modified without disrupting enclave signing or loading flows 
@@ -424,7 +497,7 @@ static encip_ret_e encrypt_or_clear_ip_sections(
                 size_t elf_size,
                 OUT pcl_table_t* tbl, 
                 OUT uint32_t* num_rvas_out, 
-                bool debug)
+                bool debug, bool bellerophon)
 {
     if(
        NULL == dat     ||
@@ -448,7 +521,7 @@ static encip_ret_e encrypt_or_clear_ip_sections(
          */
         if((uint8_t*)sec_name > elf_buf + elf_size) 
             return ENCIP_ERROR_PARSE_ELF_INVALID_IMAGE;
-        if(can_modify(sec_name, debug))
+        if(can_modify(sec_name, debug, bellerophon))
         {
             uint8_t* va = (uint8_t *)(elf_buf + dat->elf_sec[secidx].sh_offset);
             size_t size = dat->elf_sec[secidx].sh_size;
@@ -530,7 +603,7 @@ static encip_ret_e encrypt_or_clear_ip_sections(
  * ENCIP_ERROR_SEALED_BUF_SIZE if sealed buf size exceeds the size allocated for it in PCL table
  * ENCIP_SUCCESS if success
  */
-encip_ret_e encrypt_ip(INOUT uint8_t* elf_buf, size_t elf_size, IN uint8_t* key, bool debug)
+encip_ret_e encrypt_ip(INOUT uint8_t* elf_buf, size_t elf_size, IN uint8_t* key, bool debug, bool bellerophon)
 {
     if(NULL == elf_buf || NULL == key)
         return ENCIP_ERROR_ENCRYPTIP_INVALID_PARAM;
@@ -561,21 +634,31 @@ encip_ret_e encrypt_ip(INOUT uint8_t* elf_buf, size_t elf_size, IN uint8_t* key,
 
     // Encrypt or clear IP sections: 
     uint32_t num_rvas = 0;
-    ret = encrypt_or_clear_ip_sections(&dat, key, elf_buf, elf_size, tbl, &num_rvas, debug);
+    ret = encrypt_or_clear_ip_sections(&dat, key, elf_buf, elf_size, tbl, &num_rvas, debug, bellerophon);
     if(ENCIP_ERROR(ret))
         return ret;
 
-    // Set GUID:
-    memcpy(tbl->pcl_guid, g_pcl_guid, sizeof(tbl->pcl_guid));
+    if (!bellerophon) {
+    	// Set GUID:
+    	memcpy(tbl->pcl_guid, g_pcl_guid, sizeof(tbl->pcl_guid));
 
-    // Set sealed blob size:
-    tbl->sealed_blob_size = (size_t)sgx_calc_sealed_data_size(SGX_PCL_GUID_SIZE, SGX_AESGCM_KEY_SIZE);
-    // Verify calculated size equals hard coded size of buffer in PCL table:
-    if(PCL_SEALED_BLOB_SIZE != tbl->sealed_blob_size)
-        return ENCIP_ERROR_SEALED_BUF_SIZE;
+    	// Set sealed blob size:
+    	tbl->sealed_blob_size = (size_t)sgx_calc_sealed_data_size(SGX_PCL_GUID_SIZE, SGX_AESGCM_KEY_SIZE);
+    	// Verify calculated size equals hard coded size of buffer in PCL table:
+    	if(PCL_SEALED_BLOB_SIZE != tbl->sealed_blob_size)
+        	return ENCIP_ERROR_SEALED_BUF_SIZE;
+    }
 
     // Set num RVAs:
     tbl->num_rvas = num_rvas;
+
+    if (bellerophon) {
+	// Set the last entry as the offset of .decrypt_stub section
+	ret = find_decrypt_stub_section(&dat, elf_buf, elf_size, tbl);
+	if(ENCIP_ERROR(ret))
+        	return ret;
+    }
+
 
     // Set decryption key sha256 hash result:
     ret = sha256(key, SGX_AESGCM_KEY_SIZE, tbl->decryption_key_hash);
@@ -622,14 +705,15 @@ encip_ret_e parse_args(
                 OUT char** ifname, 
                 OUT char** ofname, 
                 OUT char** kfname, 
-                OUT bool* debug)
+                OUT bool* debug,
+		OUT bool* bellerophon)
 {
     if(NULL == argv)
         return ENCIP_ERROR_PARSE_INVALID_PARAM;
 
     char* encip_name = argv[0];
 
-    if((argc != 7 && argc != 8) || 
+    if((argc != 8 && argc != 9) || 
         NULL == ifname || 
         NULL == ofname || 
         NULL == kfname)
@@ -659,6 +743,10 @@ encip_ret_e parse_args(
             argidx++;
             *kfname = argv[argidx];
         }
+	else if(!strcmp(argv[argidx], "-bellerophon"))
+	{
+	    *bellerophon = true;
+	}
         else
         {
             ret = ENCIP_ERROR_PARSE_ARGS;
