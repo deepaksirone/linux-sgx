@@ -43,6 +43,7 @@ enclave {
     from "sgx_tstdc.edl" import *;
     trusted {
         public int ecall_mbedtls_crypto();
+	public int decrypt_enclave(int decrypt);
     };
 
     /* 

@@ -126,7 +126,7 @@ else
 endif
 Crypto_Library_Name := sgx_tcrypto
 
-Enclave_Cpp_Files := Enclave/Enclave.cpp
+Enclave_Cpp_Files := Enclave/Enclave.cpp Enclave/bellerophon/bellerophon.cpp
 Enclave_Include_Paths := -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/libcxx -I$(SGX_SDK)/include/tlibc
 
 Enclave_C_Flags := -nostdinc -fvisibility=hidden -fpie -fstack-protector $(Enclave_Include_Paths) -DPB_ENABLE_SGX
@@ -147,7 +147,7 @@ Enclave_Link_Flags := $(Enclave_Security_Link_Flags) \
 	-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
 	-Wl,--start-group  -lsgx_tstdc -lsgx_tcxx -lsgx_mbedcrypto -lsgx_pthread -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
 	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
-	-Wl,-pie,-eenclave_entry -Wl,--export-dynamic  \
+	-Wl,-pie,-eenclave_entry -Wl,--export-dynamic -Wl,--print-gc-sections  \
 	-Wl,--defsym,__ImageBase=0 \
 	-Wl,--version-script=$(Enclave_Version_Script)
 
@@ -157,6 +157,34 @@ Enclave_Name := enclave.so
 Signed_Enclave_Name := enclave.signed.so
 Enclave_Config_File := Enclave/Enclave.config.xml
 Enclave_Test_Key := Enclave/Enclave_private_test.pem
+
+# Bellerophon Settings
+Pcl_Encryption_Tool := $(SGX_SDK)/bin/x64/sgx_encrypt
+PCL_KEY := key.bin
+Encryption_Tool_Flags := -d -bellerophon
+Encrypted_Enclave_Name  := $(Enclave_Name).enc
+
+# PCL source files
+PCL_ASM_FILES       := Enclave/bellerophon/crypto/pcl_vpaes-x86_64.s \
+                       Enclave/bellerophon/crypto/pcl_ghash-x86_64.s
+
+PCL_CPP_FILES       := Enclave/bellerophon/crypto/pcl_crypto.cpp \
+		       Enclave/bellerophon/crypto/pcl_mem.cpp
+
+PCL_C_FILES        := Enclave/bellerophon/crypto/pcl_sha256.c    \
+                      Enclave/bellerophon/crypto/pcl_gcm128.c
+
+# object files
+PCL_CPP_OBJECTS                 := $(PCL_CPP_FILES:%.cpp=%.o)
+PCL_C_OBJECTS                   := $(PCL_C_FILES:%.c=%.o)
+PCL_ASM_OBJECTS                 := $(PCL_ASM_FILES:%.s=%.o)
+PCL_INCLUDE_PATH		:= -I/usr/include \
+				   -I/usr/include/x86_64-linux-gnu \
+				   -I./Enclave/bellerophon \
+				   -I./Enclave/bellerophon/crypto
+
+
+Enclave_Cpp_Objects := $(Enclave_Cpp_Objects) $(PCL_CPP_OBJECTS) $(PCL_C_OBJECTS) $(PCL_ASM_OBJECTS)
 
 ifeq ($(SGX_MODE), HW)
 ifeq ($(SGX_DEBUG), 1)
@@ -246,6 +274,31 @@ Enclave/Enclave_t.o: Enclave/Enclave_t.c
 	@$(CC) $(SGX_COMMON_CFLAGS) $(Enclave_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
+Enclave/Enclave.o: Enclave/Enclave.cpp
+	$(CXX) $(SGX_COMMON_CXXFLAGS) $(Enclave_Cpp_Flags) -c $< -o $@
+	objcopy $@ --rename-section .text=.encrypt.text
+	objcopy $@ --rename-section .data=.encrypt.data
+	objcopy $@ --rename-section .rodata=.encrypt.rodata
+
+	@echo "CXX  <=  $<"
+
+Enclave/bellerophon/bellerophon.o: Enclave/bellerophon/bellerophon.cpp
+	$(CXX) $(SGX_COMMON_CXXFLAGS) $(Enclave_Cpp_Flags) -c $< -o $@
+
+	@echo "CXX <= $<"
+
+Enclave/bellerophon/crypto/%.o: Enclave/bellerophon/crypto/%.s
+	@$(CC) $(SGX_COMMON_CFLAGS) $(PCL_INCLUDE_PATH) $(Enclave_C_Flags) -c $< -o $@
+	@echo "CC   <=  $<"
+
+Enclave/bellerophon/crypto/%.o: Enclave/bellerophon/crypto/%.c
+	@$(CC) $(SGX_COMMON_CFLAGS) $(PCL_INCLUDE_PATH) $(Enclave_C_Flags) -c $< -o $@
+	@echo "CC   <=  $<"
+
+Enclave/bellerophon/crypto/%.o: Enclave/bellerophon/crypto/%.cpp
+	@$(CC) $(SGX_COMMON_CXXFLAGS) $(PCL_INCLUDE_PATH) $(Enclave_Cpp_Flags) -c $< -o $@
+	@echo "CC   <=  $<"
+
 Enclave/%.o: Enclave/%.cpp
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
@@ -254,22 +307,29 @@ Enclave/%.o: Enclave/%.cc
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
+
+
 $(Enclave_Cpp_Objects): Enclave/Enclave_t.h
 
 $(Enclave_Name): Enclave/Enclave_t.o $(Enclave_Cpp_Objects) 
-	@$(CXX) $^ -o $@ $(Enclave_Link_Flags)
+	$(CXX) $^ -o $@ $(Enclave_Link_Flags)
 	@echo "LINK =>  $@"
 
-$(Signed_Enclave_Name): $(Enclave_Name)
+$(Encrypted_Enclave_Name): $(Enclave_Name) $(Pcl_Encryption_Tool)
+	$(Pcl_Encryption_Tool) -i $< -o $@ -k $(PCL_KEY) $(Encryption_Tool_Flags)
+	@echo "Encrypted => $@"
+
+$(Signed_Enclave_Name): $(Encrypted_Enclave_Name)
 ifeq ($(wildcard $(Enclave_Test_Key)),)
 	@echo "There is no enclave test key<Enclave_private_test.pem>."
 	@echo "The project will generate a key<Enclave_private_test.pem> for test."
 	@openssl genrsa -out $(Enclave_Test_Key) -3 3072
 endif
-	@$(SGX_ENCLAVE_SIGNER) sign -key $(Enclave_Test_Key) -enclave $(Enclave_Name) -out $@ -config $(Enclave_Config_File)
+	
+	@$(SGX_ENCLAVE_SIGNER) sign -key $(Enclave_Test_Key) -enclave $(Encrypted_Enclave_Name) -out $@ -config $(Enclave_Config_File)
 	@echo "SIGN =>  $@"
 
 .PHONY: clean
 
 clean:
-	@rm -f .config_* $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.* $(Enclave_Test_Key)
+	@rm -f .config_* $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.* $(Enclave_Test_Key) *.enc

@@ -204,27 +204,39 @@ int SGX_CDECL main(int argc, char *argv[])
         return -1; 
     }
  
-    sgx_status_t status = ecall_mbedtls_crypto(global_eid, &result);
+    /*sgx_status_t status = ecall_mbedtls_crypto(global_eid, &result);
     if (status != SGX_SUCCESS) {
 	    printf("ERROR: ECall failed\n");
 	    print_error_message(status);
 	    printf("Enter a character before exit ...\n");
 	    getchar();
 	    return -1;
+    }*/
+
+    int mode = 1;
+    sgx_status_t status = decrypt_enclave(global_eid, &result, mode);
+
+    if (result == 0) {
+	    printf("[decrypt_enclave] mode: %d, ret: success\n", mode);
+	    if (mode == 1) {
+		    sgx_status_t status = ecall_mbedtls_crypto(global_eid, &result);
+
+
+    		    /* Destroy the enclave */
+		    sgx_destroy_enclave(global_eid);
+		    
+		    printf("Info: MbedCrypto Sample completed.\n");
+		    
+		    if ( 0 == result) {
+			    printf("Info: All test passed.\n");
+		    } else {
+			    if ( result & FAIL_SHA ) printf("ERROR: SHA256 test failed.\n");
+			    if ( result & FAIL_AES ) printf("ERROR: AES-CTR test failed.\n");
+			    if ( result & FAIL_ECDSA ) printf("ERROR: ECDSA test failed.\n");
+		    }
+	    }
     }
 
-    /* Destroy the enclave */
-    sgx_destroy_enclave(global_eid);
-    
-    printf("Info: MbedCrypto Sample completed.\n");
-
-    if ( 0 == result) {
-	    printf("Info: All test passed.\n");
-    } else {
-        if ( result & FAIL_SHA ) printf("ERROR: SHA256 test failed.\n");
-        if ( result & FAIL_AES ) printf("ERROR: AES-CTR test failed.\n");
-        if ( result & FAIL_ECDSA ) printf("ERROR: ECDSA test failed.\n");
-    }
     printf("Enter a character before exit ...\n");
     getchar();
     return 0;

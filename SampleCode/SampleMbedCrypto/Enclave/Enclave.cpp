@@ -41,6 +41,8 @@
 #include "mbedtls/ecdsa.h"
 #include "mbedtls/sha256.h"
 
+//#include "bellerophon/bellerophon_tbl.h"
+
 #define FAIL_SHA	0x1
 #define FAIL_AES	0x2
 #define FAIL_ECDSA	0x4
@@ -52,6 +54,8 @@
  *   Invokes OCALL to display the enclave buffer to the terminal.
  *   'printf' function is required for sgx protobuf logging module.
  */
+//int printf(const char *fmt, ...) __attribute__((section(".encrypt.text")));
+
 int printf(const char *fmt, ...)
 {
     char buf[BUFSIZ] = {'\0'};
@@ -62,6 +66,8 @@ int printf(const char *fmt, ...)
     ocall_print_string(buf);
     return 0;
 }
+
+//static int mbedtls_crypto_sha256() __attribute__((section(".encrypt.text")));
 
 static int mbedtls_crypto_sha256()
 {
@@ -78,6 +84,8 @@ static int mbedtls_crypto_sha256()
     mbedtls_printf("\nSHA256 PASSED\n");
     return 0;
 }
+
+//static int mbedtls_crypto_aes_ctr_enc_dec_buf() __attribute__((section(".encrypt.text")));
 
 static int mbedtls_crypto_aes_ctr_enc_dec_buf()
 {
@@ -183,6 +191,8 @@ exit:
 }
 
 #define ECPARAMS    MBEDTLS_ECP_DP_SECP192R1
+
+//static int mbedtls_crypto_ecdsa() __attribute__((section(".encrypt.text")));
 
 static int mbedtls_crypto_ecdsa()
 {
@@ -300,6 +310,16 @@ exit:
     mbedtls_entropy_free( &entropy );
     return ret;
 }
+
+//int decrypt_enclave() __attribute__((section(".decrypt_stub")));
+//int decrypt_enclave()
+//{
+//   char key[16] = {0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa };
+//
+//   return 0;
+//}
+
+//int ecall_mbedtls_crypto() __attribute__((section(".encrypt.text")));
 
 int ecall_mbedtls_crypto()
 {
