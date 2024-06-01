@@ -696,8 +696,8 @@ static inline uint32_t opcode2byte_normal_lookup(uint8_t tblp_t, uint8_t moderm_
     return res & 0x3;
 }
 
-static uint8_t extension_2op_table[16] = {
-        0x5a,
+/*static uint8_t extension_2op_table[16] = {
+       0x5a,
         0x05,
         0x00,
         0xa9,
@@ -712,7 +712,7 @@ static uint8_t extension_2op_table[16] = {
         0,
         0,
         0,
-        0};
+        0};*/
 
 #define _mm_set1_epi32(val) (__extension__(__m128i)(__v4si){val, val, val, val})
 
@@ -753,6 +753,23 @@ static inline uint32_t opcode2byte_extension_lookup(uint8_t tblp_t, uint8_t mode
 {
     uint32_t tblp = tblp_t;
     uint32_t moderm_reg = moderm_reg_t;
+    uint8_t extension_2op_table[16] = {
+        0x5a,
+        0x05,
+        0x00,
+        0xa9,
+        0x08,
+        0x00,
+        0x5a,
+        0x50,
+        0x96,
+        0x40,
+        0x55,
+        0x00,
+        0,
+        0,
+        0,
+        0};
     __m128i num = (__m128i)__builtin_ia32_lddqu((char const *)extension_2op_table);
     uint32_t idx = ((tblp * 2)) | ((tblp * 2 + 1) << 8);
     __m128i res = (__m128i)__builtin_ia32_pshufb128((__v16qi)num, (__v16qi)_mm_set1_epi32((int)idx));

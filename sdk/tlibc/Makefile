@@ -71,10 +71,10 @@ LIBC_OBJS := $(sort $(LIBC_OBJS))
 
 LIBC_NAME    := libtlibc.a
 
-CFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(CFLAGS))
-CXXFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(CXXFLAGS))
-TCFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(TCFLAGS))
-TCXXFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(TCXXFLAGS))
+#CFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(CFLAGS))
+#CXXFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(CXXFLAGS))
+#TCFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(TCFLAGS))
+#TCXXFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(TCXXFLAGS))
 
 
 .PHONY: all
@@ -99,29 +99,17 @@ endif
 
 string/consttime_memequal.o: string/consttime_memequal.c
 	$(CC)  $(filter-out -O2,$(CFLAGS)) -O1 $(CPPFLAGS) -c $< -o $@
-	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
-	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
-	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
 	
 %.o: %.c
 	$(CC)  $(CFLAGS)   $(CPPFLAGS) -c $< -o $@
-	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
-	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
-	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
 
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
-	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
-	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
-	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
 
 
 %.o: %.S
 	$(CC)  $(ASFLAGS)  $(CPPFLAGS) -c $< -o $@
-	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
-	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
-	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
 
 
 $(BUILD_DIR):

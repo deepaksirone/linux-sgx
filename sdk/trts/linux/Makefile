@@ -56,10 +56,6 @@ endif
 
 LDCFLAGS  := -shared -nostdlib -nodefaultlibs -nostartfiles
 
-# Added for easily renaming the sections to nip*
-CFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(CFLAGS))
-CXXFLAGS := $(filter-out -ffunction-sections -fdata-sections, $(CXXFLAGS))
-
 CPP_SRCS  := $(filter-out ../trts_emm_sim.cpp, $(wildcard ../*.cpp))
 C_SRCS    := $(wildcard *.c) $(wildcard ../*.c)
 ASM_SRCS  := $(wildcard *.S) \
@@ -90,22 +86,12 @@ $(LIBTRTS): $(OBJS) $(LIBSGX_MM)
 %.o: %.S
 	echo $(ASM_SRCS)
 	$(CC) $(CFLAGS) $(TCFLAGS) -c $< -o $@
-	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
-	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
-	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
-
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(TCFLAGS) -c $< -o $@
-	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
-	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
-	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(TCFLAGS) -c $< -o $@
-	$(OBJCOPY) $@ --rename-section .text=$(NIPX)
-	$(OBJCOPY) $@ --rename-section .data=$(NIPD)
-	$(OBJCOPY) $@ --rename-section .rodata=$(NIPRODT)
 
 $(BUILD_DIR):
 	@$(MKDIR) $@

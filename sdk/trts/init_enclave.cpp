@@ -78,7 +78,6 @@ __weak_alias(__intel_security_cookie, __stack_chk_guard);
 }
 
 extern sgx_status_t pcl_entry(void* enclave_base,void* ms) __attribute__((weak));
-extern sgx_status_t pcl_entry_bellerophon(void* enclave_base, uint8_t *key) __attribute__((weak));
 extern "C" int init_enclave(void *enclave_base, void *ms) __attribute__((section(".nipx")));
 
 extern "C" int rsrv_mem_init(void *_rsrv_mem_base, size_t _rsrv_mem_size, size_t _rsrv_mem_min_size);
@@ -103,9 +102,6 @@ extern "C" int init_enclave(void *enclave_base, void *ms)
         return -1;
     }
 
-    uint8_t key[16] = {0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a};
-
-    /*
     if(NULL != pcl_entry)
     {
         // LFENCE before pcl_entry
@@ -115,32 +111,12 @@ extern "C" int init_enclave(void *enclave_base, void *ms)
         {
             return -1;
         }
-    }*/
-    /*if (pcl_entry_bellerophon != NULL)
-    {
-	sgx_lfence();
-	sgx_status_t ret = pcl_entry_bellerophon(enclave_base, key);
-        if(SGX_SUCCESS != ret)
-        {
-            return -1;
-        }
-    }*/
-
+    }
 
     // relocation
     if(0 != relocate_enclave(enclave_base))
     {
         return -1;
-    }
-
-    if (pcl_entry_bellerophon != NULL)
-    {
-        sgx_lfence();
-        sgx_status_t ret = pcl_entry_bellerophon(enclave_base, key);
-        if(SGX_SUCCESS != ret)
-        {
-            return -1;
-        }
     }
 
     g_enclave_base = (uint64_t)get_enclave_base();
