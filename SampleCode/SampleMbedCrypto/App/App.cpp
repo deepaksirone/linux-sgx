@@ -32,6 +32,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <chrono>
+#include <iostream>
 
 # include <unistd.h>
 # include <pwd.h>
@@ -233,7 +235,9 @@ int SGX_CDECL main(int argc, char *argv[])
     printf("Application enclave and decryption enclave initialized successfully\n");
 
     int mode = 1;
+    auto start = std::chrono::high_resolution_clock::now();
     sgx_status_t status = decrypt_enclave(global_eid, &result, mode);
+    auto finish = std::chrono::high_resolution_clock::now();
 
     if (result == 0) {
 	    printf("[decrypt_enclave] mode: %d, ret: success\n", mode);
@@ -255,6 +259,9 @@ int SGX_CDECL main(int argc, char *argv[])
 		    }
 	    }
     }
+    
+    std::chrono::duration<double> elapsed = finish - start;
+    std::cout << "Decryption Elapsed time: " << elapsed.count() << " s\n";
 
     //printf("Enter a character before exit ...\n");
     //getchar();
