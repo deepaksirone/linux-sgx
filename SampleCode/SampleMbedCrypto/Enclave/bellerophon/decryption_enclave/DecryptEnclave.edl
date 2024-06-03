@@ -29,30 +29,16 @@
  *
  */
 
-#ifndef _APP_H_
-#define _APP_H_
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
+enclave {
+    include "sgx_eid.h"
+    include "datatypes.h"
+    include "../Include/dh_session_protocol.h"
+    trusted{
+            public uint32_t session_request([out] sgx_dh_msg1_t *dh_msg1, [out] uint32_t *session_id);
+            public uint32_t exchange_report([in] sgx_dh_msg2_t *dh_msg2, [out] sgx_dh_msg3_t *dh_msg3, uint32_t session_id);
+            public uint32_t generate_response([in, size = req_message_size] secure_message_t* req_message, size_t req_message_size, size_t max_payload_size, [out, size=resp_message_size] secure_message_t* resp_message, size_t resp_message_size, uint32_t session_id);
+            public uint32_t end_session(uint32_t session_id);
+    };
 
-#include "sgx_error.h"       /* sgx_status_t */
-#include "sgx_eid.h"     /* sgx_enclave_id_t */
-
-#ifndef TRUE
-# define TRUE 1
-#endif
-
-#ifndef FALSE
-# define FALSE 0
-#endif
-
-#if   defined(__GNUC__)
-# define ENCLAVE_FILENAME "enclave.signed.so"
-#define DECRYPT_ENCLAVE_FILENAME "decrypt_enclave.signed.so"
-#endif
-
-extern sgx_enclave_id_t global_eid;    /* global enclave id */
-
-#endif /* !_APP_H_ */
+};

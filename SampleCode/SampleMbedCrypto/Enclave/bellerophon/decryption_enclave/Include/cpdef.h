@@ -28,31 +28,32 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+#ifndef _CPDEF_H_
+#define _CPDEF_H_
 
-#ifndef _APP_H_
-#define _APP_H_
+typedef enum _requesttype
+{
+	TYPE_1 = 100,
+	TYPE_2,
+	TYPE_3
+}REQTYPE;
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
+typedef struct _cprequestData
+{
+	REQTYPE type;
+	size_t len;
+	int    sockfd;
+	unsigned char content[1];
+}CPRequestData;
 
-#include "sgx_error.h"       /* sgx_status_t */
-#include "sgx_eid.h"     /* sgx_enclave_id_t */
+class CPRequestInt
+{
+	public:
+		CPRequestInt(){}
+		virtual ~CPRequestInt(){}
 
-#ifndef TRUE
-# define TRUE 1
+	public:
+		void virtual execute() = 0;
+};
+
 #endif
-
-#ifndef FALSE
-# define FALSE 0
-#endif
-
-#if   defined(__GNUC__)
-# define ENCLAVE_FILENAME "enclave.signed.so"
-#define DECRYPT_ENCLAVE_FILENAME "decrypt_enclave.signed.so"
-#endif
-
-extern sgx_enclave_id_t global_eid;    /* global enclave id */
-
-#endif /* !_APP_H_ */

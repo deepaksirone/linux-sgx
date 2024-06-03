@@ -81,8 +81,8 @@ else
 	Urts_Library_Name := sgx_urts
 endif
 
-App_Cpp_Files := App/App.cpp
-App_Include_Paths := -IApp -I$(SGX_SDK)/include
+App_Cpp_Files := App/App.cpp App/UntrustedEnclaveMessageExchange.cpp
+App_Include_Paths := -IApp -I$(SGX_SDK)/include -IInclude
 
 App_C_Flags := -fPIC -Wno-attributes $(App_Include_Paths)
 
@@ -126,8 +126,8 @@ else
 endif
 Crypto_Library_Name := sgx_tcrypto
 
-Enclave_Cpp_Files := Enclave/Enclave.cpp Enclave/bellerophon/bellerophon.cpp
-Enclave_Include_Paths := -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/libcxx -I$(SGX_SDK)/include/tlibc
+Enclave_Cpp_Files := Enclave/Enclave.cpp Enclave/bellerophon/bellerophon.cpp Enclave/bellerophon/EnclaveMessageExchange.cpp Enclave/bellerophon/Utility_E1.cpp
+Enclave_Include_Paths := -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/libcxx -I$(SGX_SDK)/include/tlibc -IInclude
 
 Enclave_C_Flags := -nostdinc -fvisibility=hidden -fpie -fstack-protector $(Enclave_Include_Paths) -DPB_ENABLE_SGX
 Enclave_Cpp_Flags := $(Enclave_C_Flags) -nostdinc++
@@ -154,6 +154,7 @@ Enclave_Link_Flags := $(Enclave_Security_Link_Flags) \
 Enclave_Cpp_Objects := $(Enclave_Cpp_Files:.cpp=.o)
 
 Enclave_Name := enclave.so
+Decrypt_Enclave_Name := decrypt_enclave.signed.so
 Signed_Enclave_Name := enclave.signed.so
 Enclave_Config_File := Enclave/Enclave.config.xml
 Enclave_Test_Key := Enclave/Enclave_private_test.pem
@@ -250,15 +251,35 @@ App/Enclave_u.h: $(SGX_EDGER8R) Enclave/Enclave.edl
 
 App/Enclave_u.c: App/Enclave_u.h
 
+#App/DhSessionEnclave_u.h: $(SGX_EDGER8R) Enclave/bellerophon/DhSessionEnclave.edl
+#	@cd App && $(SGX_EDGER8R) --untrusted ../Enclave/bellerophon/DhSessionEnclave.edl --search-path ../Enclave --search-path $(SGX_SDK)/include --search-path ../Include
+#	@echo "GEN  =>  $@"
+
+#App/DhSessionEnclave_u.c: App/DhSessionEnclave_u.h
+
+#App/DhSessionEnclave_u.o: App/DhSessionEnclave_u.c
+#	@$(CC) $(SGX_COMMON_CFLAGS) $(App_C_Flags) -c $< -o $@
+#	@echo "CC   <=  $<"
+
+App/DecryptEnclave_u.h: $(SGX_EDGER8R) Enclave/bellerophon/decryption_enclave/DecryptEnclave.edl
+	@cd App && $(SGX_EDGER8R) --untrusted ../Enclave/bellerophon/decryption_enclave/DecryptEnclave.edl --search-path ../Enclave --search-path $(SGX_SDK)/include --search-path ../Include
+	@echo "GEN  =>  $@"
+
+App/DecryptEnclave_u.c: App/DecryptEnclave_u.h
+
+App/DecryptEnclave_u.o: App/DecryptEnclave_u.c
+	@$(CC) $(SGX_COMMON_CFLAGS) $(App_C_Flags) -c $< -o $@
+	@echo "CC   <=  $<"
+
 App/Enclave_u.o: App/Enclave_u.c
 	@$(CC) $(SGX_COMMON_CFLAGS) $(App_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
-App/%.o: App/%.cpp App/Enclave_u.h
+App/%.o: App/%.cpp App/Enclave_u.h App/DecryptEnclave_u.h
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(App_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
-$(App_Name): App/Enclave_u.o $(App_Cpp_Objects)
+$(App_Name): App/Enclave_u.o App/DecryptEnclave_u.o $(App_Cpp_Objects)
 	@$(CXX) $^ -o $@ $(App_Link_Flags)
 	@echo "LINK =>  $@"
 
@@ -282,10 +303,36 @@ Enclave/Enclave.o: Enclave/Enclave.cpp
 
 	@echo "CXX  <=  $<"
 
-Enclave/bellerophon/bellerophon.o: Enclave/bellerophon/bellerophon.cpp
+Enclave/bellerophon/bellerophon.o: Enclave/bellerophon/bellerophon.cpp Enclave/Enclave_t.h
 	$(CXX) $(SGX_COMMON_CXXFLAGS) $(Enclave_Cpp_Flags) -c $< -o $@
-
+	
 	@echo "CXX <= $<"
+
+Enclave/bellerophon/EnclaveMessageExchange.o: Enclave/bellerophon/EnclaveMessageExchange.cpp Enclave/Enclave_t.h
+	$(CXX) $(SGX_COMMON_CXXFLAGS) $(Enclave_Cpp_Flags) -c $< -o $@
+	@echo "CXX <= $<"
+
+Enclave/bellerophon/Utility_E1.o: Enclave/bellerophon/Utility_E1.cpp
+	$(CXX) $(SGX_COMMON_CXXFLAGS) $(Enclave_Cpp_Flags) -c $< -o $@
+	
+	@echo "CXX <= $<"
+
+#Enclave/bellerophon/DhSessionEnclave_t.o: Enclave/bellerophon/DhSessionEnclave_t.c
+#	@$(CC) $(SGX_COMMON_CFLAGS) $(Enclave_C_Flags) -c $< -o $@
+#	@echo "CC   <=  $<"
+
+#Enclave/bellerophon/DhSessionEnclave_t.c: Enclave/bellerophon/DhSessionEnclave_t.h
+
+#Enclave/bellerophon/DhSessionEnclave_t.h: $(SGX_EDGER8R) Enclave/bellerophon/DhSessionEnclave.edl
+#	@cd Enclave/bellerophon && $(SGX_EDGER8R) --trusted ../bellerophon/DhSessionEnclave.edl --search-path ../../Enclave --search-path $(SGX_SDK)/include --search-path ../../Include
+#	@echo "GEN => $<"
+
+#Enclave/bellerophon/DhSessionEnclave_t.c: Enclave/bellerophon/DhSessionEnclave_t.h
+
+#Enclave/bellerophon/DhSessionEnclave_t.o: Enclave/bellerophon/DhSessionEnclave_t.c
+#	@$(CC) $(SGX_COMMON_CFLAGS) $(Enclave_C_Flags) -c $< -o $@
+	@echo "CC   <=  $<"
+
 
 Enclave/bellerophon/crypto/%.o: Enclave/bellerophon/crypto/%.s
 	@$(CC) $(SGX_COMMON_CFLAGS) $(PCL_INCLUDE_PATH) $(Enclave_C_Flags) -c $< -o $@
@@ -299,7 +346,7 @@ Enclave/bellerophon/crypto/%.o: Enclave/bellerophon/crypto/%.cpp
 	@$(CC) $(SGX_COMMON_CXXFLAGS) $(PCL_INCLUDE_PATH) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
-Enclave/%.o: Enclave/%.cpp
+Enclave/%.o: Enclave/%.cpp #Enclave/DhSessionEnclave_t.h
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
@@ -307,11 +354,9 @@ Enclave/%.o: Enclave/%.cc
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
+$(Enclave_Cpp_Objects): Enclave/Enclave_t.h #Enclave/bellerophon/DhSessionEnclave_t.h
 
-
-$(Enclave_Cpp_Objects): Enclave/Enclave_t.h
-
-$(Enclave_Name): Enclave/Enclave_t.o $(Enclave_Cpp_Objects) 
+$(Enclave_Name): Enclave/Enclave_t.o  $(Enclave_Cpp_Objects) 
 	$(CXX) $^ -o $@ $(Enclave_Link_Flags)
 	@echo "LINK =>  $@"
 
@@ -319,7 +364,12 @@ $(Encrypted_Enclave_Name): $(Enclave_Name) $(Pcl_Encryption_Tool)
 	$(Pcl_Encryption_Tool) -i $< -o $@ -k $(PCL_KEY) $(Encryption_Tool_Flags)
 	@echo "Encrypted => $@"
 
-$(Signed_Enclave_Name): $(Encrypted_Enclave_Name)
+$(Decrypt_Enclave_Name): Enclave/bellerophon/decryption_enclave/Makefile
+	$(MAKE) -C Enclave/bellerophon/decryption_enclave
+	cp Enclave/bellerophon/decryption_enclave/$@ .
+	@echo "LINK => $@"
+
+$(Signed_Enclave_Name): $(Encrypted_Enclave_Name) $(Decrypt_Enclave_Name)
 ifeq ($(wildcard $(Enclave_Test_Key)),)
 	@echo "There is no enclave test key<Enclave_private_test.pem>."
 	@echo "The project will generate a key<Enclave_private_test.pem> for test."
@@ -332,4 +382,5 @@ endif
 .PHONY: clean
 
 clean:
-	@rm -f .config_* $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.* $(Enclave_Test_Key) *.enc
+	@rm -f .config_* $(App_Name) $(Enclave_Name) $(Encrypted_Enclave_Name) $(Decrypt_Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* App/*.o App/*_u.c App/*_u.h $(Enclave_Cpp_Objects) Enclave/Enclave_t.* Enclave/bellerophon/*_t.* Enclave/bellerophon/*.o $(Enclave_Test_Key) *.enc
+	make clean -C Enclave/bellerophon/decryption_enclave

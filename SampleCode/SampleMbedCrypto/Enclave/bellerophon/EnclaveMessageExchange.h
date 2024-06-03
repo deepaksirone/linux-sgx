@@ -29,30 +29,26 @@
  *
  */
 
-#ifndef _APP_H_
-#define _APP_H_
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
+#include "datatypes.h"
+#include "sgx_eid.h"
+#include "sgx_trts.h"
+#include <map>
+#include "dh_session_protocol.h"
 
-#include "sgx_error.h"       /* sgx_status_t */
-#include "sgx_eid.h"     /* sgx_enclave_id_t */
+#ifndef LOCALATTESTATION_H_
+#define LOCALATTESTATION_H_
 
-#ifndef TRUE
-# define TRUE 1
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#ifndef FALSE
-# define FALSE 0
+uint32_t SGXAPI create_session(dh_session_t *p_session_info);
+uint32_t SGXAPI send_request_receive_response(dh_session_t *p_session_info, char *inp_buff, size_t inp_buff_len, size_t max_out_buff_size, char **out_buff, size_t* out_buff_len);
+uint32_t SGXAPI close_session(dh_session_t *p_session_info);
+
+#ifdef __cplusplus
+}
 #endif
 
-#if   defined(__GNUC__)
-# define ENCLAVE_FILENAME "enclave.signed.so"
-#define DECRYPT_ENCLAVE_FILENAME "decrypt_enclave.signed.so"
 #endif
-
-extern sgx_enclave_id_t global_eid;    /* global enclave id */
-
-#endif /* !_APP_H_ */

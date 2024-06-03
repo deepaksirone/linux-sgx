@@ -29,30 +29,40 @@
  *
  */
 
-#ifndef _APP_H_
-#define _APP_H_
+#ifndef _DH_SESSION_PROROCOL_H
+#define _DH_SESSION_PROROCOL_H
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
+#include "sgx_ecp_types.h"
+#include "sgx_key.h"
+#include "sgx_report.h"
+#include "sgx_attributes.h"
 
-#include "sgx_error.h"       /* sgx_status_t */
-#include "sgx_eid.h"     /* sgx_enclave_id_t */
+#define NONCE_SIZE         16
+#define MAC_SIZE           16
 
-#ifndef TRUE
-# define TRUE 1
+#define MSG_BUF_LEN        sizeof(ec_pub_t)*2
+#define MSG_HASH_SZ        32
+
+
+//Session information structure
+typedef struct _la_dh_session_t
+{
+    uint32_t  session_id; //Identifies the current session
+    uint32_t  status; //Indicates session is in progress, active or closed
+    union
+    {
+        struct
+        {
+			sgx_dh_session_t dh_session;
+        }in_progress;
+
+        struct
+        {
+            sgx_key_128bit_t AEK; //Session Key
+            uint32_t counter; //Used to store Message Sequence Number
+        }active;
+    };
+} dh_session_t;
+
+
 #endif
-
-#ifndef FALSE
-# define FALSE 0
-#endif
-
-#if   defined(__GNUC__)
-# define ENCLAVE_FILENAME "enclave.signed.so"
-#define DECRYPT_ENCLAVE_FILENAME "decrypt_enclave.signed.so"
-#endif
-
-extern sgx_enclave_id_t global_eid;    /* global enclave id */
-
-#endif /* !_APP_H_ */

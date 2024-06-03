@@ -48,6 +48,8 @@
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
 
+sgx_enclave_id_t responder_enclave_id = 0;
+
 typedef struct _sgx_errlist_t {
     sgx_status_t err;
     const char *msg;
@@ -165,13 +167,29 @@ void print_error_message(sgx_status_t ret)
 /* Initialize the enclave:
  *   Call sgx_create_enclave to initialize an enclave instance
  */
-int initialize_enclave(void)
+int initialize_app_enclave(void)
 {
     sgx_status_t ret = SGX_ERROR_UNEXPECTED;
     
     /* Call sgx_create_enclave to initialize an enclave instance */
     /* Debug Support: set 2nd parameter to 1 */
     ret = sgx_create_enclave(ENCLAVE_FILENAME, SGX_DEBUG_FLAG, NULL, NULL, &global_eid, NULL);
+    if (ret != SGX_SUCCESS) {
+        print_error_message(ret);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+int initialize_decrypt_enclave(void)
+{
+    sgx_status_t ret = SGX_ERROR_UNEXPECTED;
+
+    /* Call sgx_create_enclave to initialize an enclave instance */
+    /* Debug Support: set 2nd parameter to 1 */
+    ret = sgx_create_enclave(DECRYPT_ENCLAVE_FILENAME, SGX_DEBUG_FLAG, NULL, NULL, &responder_enclave_id, NULL);
     if (ret != SGX_SUCCESS) {
         print_error_message(ret);
         return -1;
@@ -198,7 +216,7 @@ int SGX_CDECL main(int argc, char *argv[])
     int result = 0xff;
 
     /* Initialize the enclave */
-    if(initialize_enclave() < 0){
+    if(initialize_app_enclave() < 0 || initialize_decrypt_enclave() < 0){
         printf("Enter a character before exit ...\n");
         getchar();
         return -1; 
@@ -212,6 +230,7 @@ int SGX_CDECL main(int argc, char *argv[])
 	    getchar();
 	    return -1;
     }*/
+    printf("Application enclave and decryption enclave initialized successfully\n");
 
     int mode = 1;
     sgx_status_t status = decrypt_enclave(global_eid, &result, mode);
@@ -237,8 +256,8 @@ int SGX_CDECL main(int argc, char *argv[])
 	    }
     }
 
-    printf("Enter a character before exit ...\n");
-    getchar();
+    //printf("Enter a character before exit ...\n");
+    //getchar();
     return 0;
 }
 
