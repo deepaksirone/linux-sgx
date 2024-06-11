@@ -360,7 +360,11 @@ $(Enclave_Name): Enclave/Enclave_t.o  $(Enclave_Cpp_Objects)
 	$(CXX) $^ -o $@ $(Enclave_Link_Flags)
 	@echo "LINK =>  $@"
 
-$(Encrypted_Enclave_Name): $(Enclave_Name) $(Pcl_Encryption_Tool)
+$(PCL_KEY):
+	@python3 -c "print ('\x0a'*16, end='')" > $@
+	@echo "GEN => $@"
+
+$(Encrypted_Enclave_Name): $(Enclave_Name) $(Pcl_Encryption_Tool) $(PCL_KEY)
 	$(Pcl_Encryption_Tool) -i $< -o $@ -k $(PCL_KEY) $(Encryption_Tool_Flags)
 	@echo "Encrypted => $@"
 
@@ -382,5 +386,5 @@ endif
 .PHONY: clean
 
 clean:
-	@rm -f .config_* $(App_Name) $(Enclave_Name) $(Encrypted_Enclave_Name) $(Decrypt_Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* App/*.o App/*_u.c App/*_u.h $(Enclave_Cpp_Objects) Enclave/Enclave_t.* Enclave/bellerophon/*_t.* Enclave/bellerophon/*.o $(Enclave_Test_Key) *.enc
+	@rm -f .config_* $(PCL_KEY) $(App_Name) $(Enclave_Name) $(Encrypted_Enclave_Name) $(Decrypt_Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* App/*.o App/*_u.c App/*_u.h $(Enclave_Cpp_Objects) Enclave/Enclave_t.* Enclave/bellerophon/*_t.* Enclave/bellerophon/*.o $(Enclave_Test_Key) *.enc
 	make clean -C Enclave/bellerophon/decryption_enclave

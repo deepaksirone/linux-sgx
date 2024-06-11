@@ -218,11 +218,23 @@ int SGX_CDECL main(int argc, char *argv[])
     int result = 0xff;
 
     /* Initialize the enclave */
-    if(initialize_app_enclave() < 0 || initialize_decrypt_enclave() < 0){
+    auto start1 = std::chrono::high_resolution_clock::now();
+    if(initialize_app_enclave() < 0){
         printf("Enter a character before exit ...\n");
         getchar();
         return -1; 
     }
+
+    auto finish1 = std::chrono::high_resolution_clock::now();
+
+    if(initialize_decrypt_enclave() < 0){
+        printf("Enter a character before exit ...\n");
+        getchar();
+        return -1;
+    }
+
+
+    //auto finish1 = std::chrono::high_resolution_clock::now();
  
     /*sgx_status_t status = ecall_mbedtls_crypto(global_eid, &result);
     if (status != SGX_SUCCESS) {
@@ -261,7 +273,10 @@ int SGX_CDECL main(int argc, char *argv[])
     }
     
     std::chrono::duration<double> elapsed = finish - start;
+    std::chrono::duration<double> elapsed1 = finish1 - start1;
+    std::cout << "Init Elapsed time: " << elapsed1.count() << " s\n";
     std::cout << "Decryption Elapsed time: " << elapsed.count() << " s\n";
+
 
     //printf("Enter a character before exit ...\n");
     //getchar();
