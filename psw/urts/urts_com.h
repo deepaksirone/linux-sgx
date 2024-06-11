@@ -310,7 +310,7 @@ static int __create_enclave(BinParser &parser,
         return ret;
     }
     
-    printf("[__create_enclave] Before get_ex_feature_pointer\n");
+    //printf("[__create_enclave] Before get_ex_feature_pointer\n");
     //set sealed key for encrypted enclave
     uint8_t *sealed_key = NULL;
     if (get_ex_feature_pointer(SGX_CREATE_ENCLAVE_EX_PCL, ex_features, ex_features_p, (void **)&sealed_key) == -1)
@@ -320,7 +320,7 @@ static int __create_enclave(BinParser &parser,
         return SGX_ERROR_INVALID_PARAMETER;
     }
 
-    printf("[__create_enclave] After get_ex_feature_pointer\n");
+    //printf("[__create_enclave] After get_ex_feature_pointer\n");
     if (sealed_key != NULL)
     {
         enclave->set_sealed_key(sealed_key);
@@ -347,7 +347,7 @@ static int __create_enclave(BinParser &parser,
         return SGX_ERROR_UNEXPECTED;
     }
 
-    printf("[__create_enclave] After add_enclave\n");
+    //printf("[__create_enclave] After add_enclave\n");
 
     std::vector<std::pair<tcs_t *, bool>> tcs_list = loader.get_tcs_list();
     for (unsigned idx = 0; idx < tcs_list.size(); ++idx)
@@ -419,7 +419,7 @@ static int __create_enclave(BinParser &parser,
     //generate load debug event after EINIT
     generate_enclave_debug_event(URTS_EXCEPTION_POSTINITENCLAVE, debug_info);
 
-    printf("[__create_enclave] Before initialize\n");
+    //printf("[__create_enclave] Before initialize\n");
 
     //call trts to do some initialization
     if(SGX_SUCCESS != (ret = get_enclave_creator()->initialize(loader.get_enclave_id())))
@@ -589,7 +589,7 @@ sgx_status_t _create_enclave_from_buffer_ex(const bool debug, uint8_t *base_addr
 
     // init xave global variables for xsave/xrstor
     init_xsave_info();
-    printf("[_create_enclave_from_buffer_ex] Before __create_enclave\n"); 
+    //printf("[_create_enclave_from_buffer_ex] Before __create_enclave\n"); 
 
     //Need to set the whole misc_attr instead of just secs_attr.
     do {
@@ -597,7 +597,7 @@ sgx_status_t _create_enclave_from_buffer_ex(const bool debug, uint8_t *base_addr
         //SGX_ERROR_ENCLAVE_LOST caused by initializing enclave while power transition occurs
     } while(SGX_ERROR_ENCLAVE_LOST == ret);
 
-    printf("[_create_enclave_from_buffer_ex] After __create_enclave\n");
+    //printf("[_create_enclave_from_buffer_ex] After __create_enclave\n");
 
     if(SE_ERROR_INVALID_LAUNCH_TOKEN == ret)
         ret = SGX_ERROR_INVALID_LAUNCH_TOKEN;
@@ -611,7 +611,7 @@ sgx_status_t _create_enclave_from_buffer_ex(const bool debug, uint8_t *base_addr
         ret = SGX_ERROR_UPDATE_NEEDED;
 
     if(SGX_SUCCESS != ret) {
-	printf("[_create_enclave_from_buffer_ex] __create_enclave ret: %u\n", ret);
+	//printf("[_create_enclave_from_buffer_ex] __create_enclave ret: %u\n", ret);
         goto clean_return;
     }
 
@@ -640,7 +640,7 @@ sgx_status_t _create_enclave_ex(const bool debug, se_file_handle_t pfile, se_fil
     ret = _create_enclave_from_buffer_ex(debug, mh->base_addr, (uint64_t)(file_size), file, prd_css_file,
                                          enclave_id, misc_attr, ex_features, ex_features_p);
 
-    printf("[_create_enclave_ex] _create_enclave_from_buffer_ex ret: %u\n", ret);
+    //printf("[_create_enclave_ex] _create_enclave_from_buffer_ex ret: %u\n", ret);
 
     unmap_file(mh);
     return (sgx_status_t)ret;
