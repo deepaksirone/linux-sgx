@@ -46,6 +46,7 @@
 #include "sgx_urts.h"
 #include "App.h"
 #include "Enclave_u.h"
+#include "DecryptEnclave_u.h"
 
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
@@ -209,6 +210,13 @@ void ocall_print_string(const char *str)
     printf("%s", str);
 }
 
+void ocall_print_buffer(const unsigned char *buf, int len)
+{
+    for(int i = 0; i < len; i++)
+	    printf("%u ", buf[i]);
+    printf("\n");
+}
+
 
 /* Application entry */
 int SGX_CDECL main(int argc, char *argv[])
@@ -245,11 +253,19 @@ int SGX_CDECL main(int argc, char *argv[])
 	    return -1;
     }*/
     printf("Application enclave and decryption enclave initialized successfully\n");
+	
+    auto start2 = std::chrono::high_resolution_clock::now();
+    sgx_status_t hibe_stat = init_hibe(responder_enclave_id, &result);
+    auto finish2 = std::chrono::high_resolution_clock::now();
+
+    printf("init_hibe return val: %d\n", result);
 
     int mode = 1;
     auto start = std::chrono::high_resolution_clock::now();
     sgx_status_t status = decrypt_enclave(global_eid, &result, mode);
     auto finish = std::chrono::high_resolution_clock::now();
+
+    printf("[decrypt_enclave] ret: %d\n", result);
 
     if (result == 0) {
 	    printf("[decrypt_enclave] mode: %d, ret: success\n", mode);
@@ -274,9 +290,11 @@ int SGX_CDECL main(int argc, char *argv[])
     
     std::chrono::duration<double> elapsed = finish - start;
     std::chrono::duration<double> elapsed1 = finish1 - start1;
+    std::chrono::duration<double> elapsed2 = finish2 - start2;
+
     std::cout << "Init Elapsed time: " << elapsed1.count() << " s\n";
     std::cout << "Decryption Elapsed time: " << elapsed.count() << " s\n";
-
+    std::cout << "Hibe init time: " << elapsed2.count() << " s\n";
 
     //printf("Enter a character before exit ...\n");
     //getchar();

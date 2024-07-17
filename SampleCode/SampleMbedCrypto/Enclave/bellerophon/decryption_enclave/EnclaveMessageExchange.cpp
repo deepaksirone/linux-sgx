@@ -48,6 +48,7 @@ extern "C" {
 
 uint32_t enclave_to_enclave_call_dispatcher(char* decrypted_data, size_t decrypted_data_length, char** resp_buffer, size_t* resp_length);
 uint32_t message_exchange_response_generator(char* decrypted_data, char** resp_buffer, size_t* resp_length);
+uint32_t bellerophon_decrypt(dh_session_t* session_info, char *decrypted_data, char** resp_buffer, size_t* resp_length);
 uint32_t verify_peer_enclave_trust(sgx_dh_session_enclave_identity_t* peer_enclave_identity);
 
 #ifdef __cplusplus
@@ -181,6 +182,7 @@ extern "C" ATTESTATION_STATUS exchange_report(sgx_dh_msg2_t *dh_msg2,
         session_info->session_id = session_id;
         session_info->status = ACTIVE;
         session_info->active.counter = 0;
+	memcpy(&(session_info->initiator_identity), &initiator_identity, sizeof(initiator_identity));
         memcpy(session_info->active.AEK, &dh_aek, sizeof(sgx_key_128bit_t));
         memset(&dh_aek,0, sizeof(sgx_key_128bit_t));
         g_session_count++;
@@ -210,7 +212,7 @@ extern "C" ATTESTATION_STATUS generate_response(secure_message_t* req_message,
     ms_in_msg_exchange_t * ms;
     size_t resp_data_length;
     size_t resp_message_calc_size;
-    char* resp_data;
+    char* resp_data = NULL;
     uint8_t l_tag[TAG_SIZE];
     size_t header_size, expected_payload_size;
     dh_session_t *session_info;
@@ -292,9 +294,24 @@ extern "C" ATTESTATION_STATUS generate_response(secure_message_t* req_message,
         if(ret !=0)
         {
             SAFE_FREE(decrypted_data);
-            SAFE_FREE(resp_data);
+	    if (resp_data != NULL)
+            	SAFE_FREE(resp_data);
             return INVALID_SESSION;
         }
+    } else if (ms->msg_type == DECRYPTION_REQUEST)
+    {
+	ret = bellerophon_decrypt(session_info, (char *)decrypted_data, &resp_data, &resp_data_length);
+	if (ret != 0)
+	{
+	     SAFE_FREE(decrypted_data);
+	     if (resp_data != NULL)
+		 SAFE_FREE(resp_data);
+	     return INVALID_SESSION;
+	}
+	/*if (ret == 0)
+		return 55;
+	else
+		return INVALID_REQUEST_TYPE_ERROR;*/
     }
     else
     {

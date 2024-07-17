@@ -125,3 +125,4 @@ extern "C" uint32_t message_exchange_response_generator(char* decrypted_data,
 
     return SUCCESS;
 }
+

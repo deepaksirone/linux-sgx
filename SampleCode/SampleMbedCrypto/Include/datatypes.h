@@ -58,6 +58,7 @@
 
 #define MESSAGE_EXCHANGE 0x0
 #define ENCLAVE_TO_ENCLAVE_CALL 0x1
+#define DECRYPTION_REQUEST 0x2
 
 #define INVALID_ARGUMENT                   -2   ///< Invalid function argument
 #define LOGIC_ERROR                        -3   ///< Functional logic error
@@ -99,6 +100,14 @@ typedef struct _session_id_tracker_t
 {
     uint32_t          session_id;
 }session_id_tracker_t;
+
+typedef struct _decryption_request_t
+{
+	uint8_t enc_key[16];
+	uint32_t enc_key_size;
+	uint32_t encapsulated_key_size;
+	uint8_t encapsulated_key[4096];
+} decryption_request_t;
 
 #pragma pack(pop)
 

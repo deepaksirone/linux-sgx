@@ -35,6 +35,7 @@
 #include "sgx_ecp_types.h"
 #include "sgx_key.h"
 #include "sgx_report.h"
+#include "sgx_dh.h"
 #include "sgx_attributes.h"
 
 #define NONCE_SIZE         16
@@ -62,6 +63,7 @@ typedef struct _la_dh_session_t
             uint32_t counter; //Used to store Message Sequence Number
         }active;
     };
+    sgx_dh_session_enclave_identity_t initiator_identity;
 } dh_session_t;
 
 
