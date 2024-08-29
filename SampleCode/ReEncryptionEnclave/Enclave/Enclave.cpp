@@ -74,7 +74,7 @@ int init_hibe()
         //char seed[32] = {0x0};
         int32_t out_size;
 
-        char *hibe_setup_params = setup_hibe(5, NULL, 0, &out_size);
+        char *hibe_setup_params = setup_hibe(10, NULL, 0, &out_size);
         if (out_size <= 0)
                 return -1;
         if (out_size > 4096)
@@ -88,12 +88,16 @@ int init_hibe()
 
 
 int reEncryptHIBEWrappedKeys(char **hibe_keys, int hibe_keys_size, char **encapsulated_keys, char **old_identity, int old_identity_length, char **new_identity, int new_identity_length, char **re_encrypted_keys) {
-	char *key = hibe_keys;
+	char *key = hibe_keys[0];
 	int idx = 0;
 	while(key != NULL) {
-		int ret = reencrypt_data(5, (char *)hibe_setup_keys, old_identity, old_identity_size, new_identity, new_identity_size, NULL, 0, hibe_keys[idx], hibe_keys_size, encapsulated_key[idx], NULL);
-		if (ret != 0)
-			return ret;
+		int k = 0;
+		while (k < 500) {
+			int ret = reencrypt_data(10, (char *)hibe_setup_keys, old_identity, old_identity_length, new_identity, new_identity_length, NULL, 0, hibe_keys[idx], hibe_keys_size, encapsulated_keys[idx], re_encrypted_keys[idx]);
+			if (ret != 0)
+				return ret;
+			k++;
+		}
 		key = hibe_keys[++idx];
 	}
 
