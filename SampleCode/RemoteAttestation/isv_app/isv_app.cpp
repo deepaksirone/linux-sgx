@@ -35,8 +35,19 @@
 
 
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include <limits.h>
 #include <unistd.h>
+#include <chrono>
+#include <iostream>
+
+#include <arpa/inet.h> // inet_addr()
+#include <netdb.h>
+#include <strings.h> // bzero()
+#include <sys/socket.h>
+#include <unistd.h> // read(), write(), close()
+
 // Needed for definition of remote attestation messages.
 #include "remote_attestation_result.h"
 
@@ -58,6 +69,8 @@
 
 #include "service_provider.h"
 
+#define SA struct sockaddr
+
 #ifndef SAFE_FREE
 #define SAFE_FREE(ptr) {if (NULL != (ptr)) {free(ptr); (ptr) = NULL;}}
 #endif
@@ -69,6 +82,97 @@
 
 
 #define ENCLAVE_PATH "isv_enclave.signed.so"
+
+
+char *hostname_argv = NULL;
+
+errno_t memcpy_s(
+    void *dest,
+    size_t numberOfElements,
+    const void *src,
+    size_t count)
+{
+    if(numberOfElements<count)
+        return -1;
+    memcpy(dest, src, count);
+    return 0;
+}
+
+void ra_free_network_response_buffer(ra_samp_response_header_t *resp)
+{
+    if(resp!=NULL)
+    {
+        free(resp);
+    }
+}
+
+
+int send_receive_network_message(char *hostname, int port, void *message, 
+		uint64_t message_size, void **resp, uint64_t *response_size) {
+
+	int sockfd, connfd;
+	struct sockaddr_in servaddr, cli;
+ 
+	// socket create and verification
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    	if (sockfd == -1) {
+        	printf("socket creation failed...\n");
+        	exit(0);
+    	}
+	else
+        	printf("[isv_app] Attestation socket created\n");
+
+	bzero(&servaddr, sizeof(servaddr));
+ 
+	// assign IP, PORT
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_addr.s_addr = inet_addr(hostname);
+	servaddr.sin_port = htons(7777);
+ 
+	// connect the client socket to server socket
+	if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr))
+        	!= 0) {
+        	printf("connection with the server failed...\n");
+        	exit(0);
+	}
+	else
+        	printf("[isv_app] Connected with Attestation Service\n");
+    
+	// Write Message Size
+	int w = write(sockfd, (void *)&message_size, sizeof(uint64_t));
+	printf("Wrote message_size num_bytes: %d\n", w);
+	
+	w = write(sockfd, message, message_size);
+	printf("Wrote message num_bytes: %d\n", w);
+
+	uint64_t resp_size;
+	// Read Response size
+	read(sockfd, (void *)&resp_size, sizeof(uint64_t));
+	
+	char *response = (char *)malloc(resp_size);
+	if (response == NULL) {
+		printf("[isv_app] Out of memory for socket response\n");
+		return -1;
+	}
+
+	read(sockfd, response, resp_size);
+	*resp = (void*)response;
+	*response_size = resp_size;
+
+	close(sockfd);
+
+	return 0;
+}
+
+
+int ra_network_send_receive(const char *server_url,
+    const ra_samp_request_header_t *p_req,
+    ra_samp_response_header_t **p_resp) {
+	uint64_t response_size;
+	uint64_t message_size = p_req->size + sizeof(ra_samp_request_header_t);
+	return send_receive_network_message("127.0.0.1", 7777, (void *)p_req, message_size, (void**)p_resp, &response_size);
+}
+
 
 uint8_t* msg1_samples[] = { msg1_sample1, msg1_sample2 };
 uint8_t* msg2_samples[] = { msg2_sample1, msg2_sample2 };
@@ -164,6 +268,7 @@ void PRINT_ATTESTATION_SERVICE_RESPONSE(
     }
 }
 
+
 // This sample code doesn't have any recovery/retry mechanisms for the remote
 // attestation. Since the enclave can be lost due S3 transitions, apps
 // susceptible to S3 transitions should have logic to restart attestation in
@@ -190,6 +295,9 @@ int main(int argc, char* argv[])
     int32_t verification_samples = sizeof(msg1_samples)/sizeof(msg1_samples[0]);
 
     FILE* OUTPUT = stdout;
+
+    auto total_start = std::chrono::high_resolution_clock::now();
+
 
 #define VERIFICATION_INDEX_IS_VALID() (verify_index > 0 && \
                                        verify_index <= verification_samples)
@@ -219,7 +327,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    int i = 2; // We will do it twice, the first time is ECDSA quoting, the second one is EPID quoting
+    int i = 1; // We will do it twice, the first time is ECDSA quoting, the second one is EPID quoting
     do
     {
         if (i == 2)
@@ -341,7 +449,7 @@ int main(int argc, char* argv[])
                 ret = sgx_ra_get_msg1_ex(&selected_key_id, context, enclave_id, sgx_ra_get_ga,
                                       (sgx_ra_msg1_t*)((uint8_t*)p_msg1_full
                                       + sizeof(ra_samp_request_header_t)));
-                sleep(3); // Wait 3s between retries
+                //sleep(1); // Wait 3s between retries
             } while (SGX_ERROR_BUSY == ret && busy_retry_time--);
             if(SGX_SUCCESS != ret)
             {
@@ -520,11 +628,13 @@ int main(int argc, char* argv[])
                                        p_msg2_full->size,
                                        &p_msg3,
                                        &msg3_size);
+			/*ret = sgx_ra_proc_msg2(context, enclave_id, sgx_ra_proc_msg2_trusted,
+					sgx_ra_get_msg3_trusted, p_msg2_body, p_msg2_full->size, &p_msg3, &msg3_size);*/
                 } while (SGX_ERROR_BUSY == ret && busy_retry_time--);
                 if(!p_msg3)
                 {
                     fprintf(OUTPUT, "\nError, call sgx_ra_proc_msg2_ex fail. "
-                                    "p_msg3 = 0x%p [%s].", p_msg3, __FUNCTION__);
+                                    "p_msg3 = 0x%p ret = %d [%s].", p_msg3, ret, __FUNCTION__);
                     ret = -1;
                     goto CLEANUP;
                 }
@@ -737,7 +847,12 @@ int main(int argc, char* argv[])
         SAFE_FREE(p_msg1_full);
         SAFE_FREE(p_msg0_full);
     }while(--i);
+
+    auto total_end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_final = total_end - total_start;
+    std::cout << "\nTotal Time: " << elapsed_final.count() << " s\n";
+
     printf("\nEnter a character before exit ...\n");
-    getchar();
+    //getchar();
     return ret;
 }

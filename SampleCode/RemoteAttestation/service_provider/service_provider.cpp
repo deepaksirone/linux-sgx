@@ -186,7 +186,7 @@ static sp_db_item_t g_sp_db;
 
 static const sample_extended_epid_group* g_sp_extended_epid_group_id= NULL;
 static bool g_is_sp_registered = false;
-static bool g_return_ecdsa_att_key_id = true;
+static bool g_return_ecdsa_att_key_id = false;
 static int g_sp_credentials = 0;
 static int g_authentication_token = 0;
 
