@@ -35,6 +35,8 @@ SGX_SDK ?= /opt/intel/sgxsdk
 SGX_MODE ?= HW
 SGX_ARCH ?= x64
 SGX_DEBUG ?= 1
+NUM_PAD_PAGES ?= 1
+PADDING_TOOL ?= ./generate_large_array.py
 
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
@@ -354,7 +356,11 @@ Enclave/%.o: Enclave/%.cc
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
-$(Enclave_Cpp_Objects): Enclave/Enclave_t.h #Enclave/bellerophon/DhSessionEnclave_t.h
+Pad_Enclave: $(PADDING_TOOL)
+	@echo "Padding Enclave with" $(NUM_PAD_PAGES)
+	@$(PADDING_TOOL) $(NUM_PAD_PAGES) > ./Enclave/EnclaveData.cpp
+
+$(Enclave_Cpp_Objects): Pad_Enclave Enclave/Enclave_t.h #Enclave/bellerophon/DhSessionEnclave_t.h
 
 $(Enclave_Name): Enclave/Enclave_t.o  $(Enclave_Cpp_Objects) 
 	$(CXX) $^ -o $@ $(Enclave_Link_Flags)

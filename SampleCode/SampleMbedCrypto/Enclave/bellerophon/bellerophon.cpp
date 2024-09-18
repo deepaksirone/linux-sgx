@@ -79,7 +79,7 @@ static int get_decryption_key(dh_session_t *session, uint8_t *key, int key_len)
 
     target_fn_id = 0;
     msg_type = DECRYPTION_REQUEST;
-    max_out_buff_size = 50; // it's assumed the maximum payload size in response message is 50 bytes, it's for demonstration purpose
+    max_out_buff_size = 4096; // it's assumed the maximum payload size in response message is 50 bytes, it's for demonstration purpose
     //secret_data = 0x12345678; //Secret Data here is shown only for purpose of demonstration.
 
     decryption_request_t dec_req;
@@ -95,6 +95,7 @@ static int get_decryption_key(dh_session_t *session, uint8_t *key, int key_len)
     {
         return ke_status;
     }
+    //ocall_print_string("Here1\n");
 
     //Core Reference Code function
     ke_status = send_request_receive_response(session, marshalled_inp_buff,
@@ -106,6 +107,8 @@ static int get_decryption_key(dh_session_t *session, uint8_t *key, int key_len)
         return ke_status;
     }
 
+    //ocall_print_string("Here2\n");
+
     //Un-marshal the secret response data
     //ke_status = umarshal_message_exchange_response(out_buff, &secret_response);
     size_t secret_len;
@@ -116,6 +119,8 @@ static int get_decryption_key(dh_session_t *session, uint8_t *key, int key_len)
         SAFE_FREE(out_buff);
         return ke_status;
     }
+
+    //ocall_print_string("Here3\n");
 
     memcpy(key, secret_response, secret_len);
 
@@ -144,6 +149,8 @@ extern "C" int decrypt_enclave(int decrypt)
 	   return ret;
    }
 
+   //ocall_print_string("After creating DH session\n");
+
    //uint8_t key1[16] = {0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa };
    uint8_t key1[16] = { 0x0 };
    ret = get_decryption_key(&g_session,(uint8_t *)&key1, 16);
@@ -151,6 +158,8 @@ extern "C" int decrypt_enclave(int decrypt)
 	   ocall_print_string("Error getting decryption key\n");
            return ret;
    }
+
+   //ocall_print_string("After getting decryption key");
 
    uint8_t key[16] = {0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa };
    if (memcmp(key1, key, 16) != 0) {

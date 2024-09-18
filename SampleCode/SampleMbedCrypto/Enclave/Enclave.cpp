@@ -49,6 +49,8 @@
 
 #define mbedtls_printf       printf
 
+#include "EnclaveData.cpp"
+
 /* 
  * printf: 
  *   Invokes OCALL to display the enclave buffer to the terminal.
@@ -330,3 +332,5 @@ int ecall_mbedtls_crypto()
     return ret;
 
 }
+
+

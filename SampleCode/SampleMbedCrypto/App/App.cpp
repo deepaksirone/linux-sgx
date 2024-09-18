@@ -267,13 +267,11 @@ int SGX_CDECL main(int argc, char *argv[])
 
     printf("[decrypt_enclave] ret: %d\n", result);
 
-    if (result == 0) {
+    /*if (result == 0) {
 	    printf("[decrypt_enclave] mode: %d, ret: success\n", mode);
 	    if (mode == 1) {
 		    sgx_status_t status = ecall_mbedtls_crypto(global_eid, &result);
-
-
-    		    /* Destroy the enclave */
+		   
 		    sgx_destroy_enclave(global_eid);
 		    
 		    printf("Info: MbedCrypto Sample completed.\n");
@@ -286,7 +284,7 @@ int SGX_CDECL main(int argc, char *argv[])
 			    if ( result & FAIL_ECDSA ) printf("ERROR: ECDSA test failed.\n");
 		    }
 	    }
-    }
+    }*/
     
     std::chrono::duration<double> elapsed = finish - start;
     std::chrono::duration<double> elapsed1 = finish1 - start1;

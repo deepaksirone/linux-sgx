@@ -51,8 +51,12 @@ extern "C" uint32_t bellerophon_decrypt(dh_session_t* session_info, char* decryp
 	dec_req = (decryption_request_t *)ms->inparam_buff;
 	//if (memcmp(dec_req->enc_key, ciphertext, 16) || memcmp(dec_req->encapsulated_key, encapsulated_key, dec_req->encapsulated_key_size) )
 	//	return ATTESTATION_ERROR;
+	unsigned char b[] = {0x61, 0x61, 0x61, 0xa};
 
+	unsigned char b1[] = {0x61, 0x61, 0x61, 0xa, 0xa};
+	//ocall_print_buffer(b, 4);
 	int32_t ids[4] = {1, 2, 3, 4};	
+	//ocall_print_buffer(b, 4);
 	//char seed[32] = {0x0};
 	//char key[16] = {0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa, 0xa};
 	//char key1[16];
@@ -61,12 +65,20 @@ extern "C" uint32_t bellerophon_decrypt(dh_session_t* session_info, char* decryp
 	//memcpy(setup_params_copy, setup_params, 832);
 	//ocall_print_buffer((unsigned char *)ciphertext, 16);
 	int ret = decrypt_hibe_integers(5, (char *)hibe_setup_keys, (int32_t *)ids, 4, NULL, 0, (char *)dec_req->enc_key, 16, (char *)dec_req->encapsulated_key);
+	/*if (ret == 100) {
+		ocall_print_buffer(b1, 5);
+		return ATTESTATION_ERROR;
+	}*/
+
 	if (ret < 0)
 		return ATTESTATION_ERROR;
+
+	//ocall_print_buffer(b, 4);
 	
 	if(bellerophon_marshal_message_exchange_response(resp_buffer, resp_length, (char *)dec_req->enc_key, 16) != SUCCESS)
 	//if(bellerophon_marshal_message_exchange_response(resp_buffer, resp_length, (char *)key, 16) != SUCCESS)
         	return MALLOC_ERROR;
+	//ocall_print_buffer(b, 4);
 
 	return SUCCESS;
 }
