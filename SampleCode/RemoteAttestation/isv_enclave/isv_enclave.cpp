@@ -36,6 +36,8 @@
 #include "sgx_tcrypto.h"
 #include "string.h"
 
+#include "EnclaveData.cpp"
+
 // This is the public EC key of the SP. The corresponding private EC key is
 // used by the SP to sign data used in the remote attestation SIGMA protocol
 // to sign channel binding data in MSG2. A successful verification of the
@@ -142,6 +144,7 @@ bool derive_key(
 
     // memset here can be optimized away by compiler, so please use memset_s on
     // windows for production code and similar functions on other OSes.
+    //memcpy(&key_material, big_data1, 1);
     memset(&key_material, 0, sizeof(sgx_sha256_hash_t));
 
     return true;
@@ -329,7 +332,7 @@ sgx_status_t put_secret_data(
     uint32_t secret_size,
     uint8_t *p_gcm_mac)
 {
-    sgx_status_t ret = SGX_SUCCESS;
+    sgx_status_t ret = (sgx_status_t)big_data[0];
     sgx_ec_key_128bit_t sk_key;
 
     do {

@@ -295,6 +295,13 @@ int main(int argc, char* argv[])
     int32_t verification_samples = sizeof(msg1_samples)/sizeof(msg1_samples[0]);
 
     FILE* OUTPUT = stdout;
+    std::chrono::time_point<std::chrono::high_resolution_clock> ra_protocol_start_msg0;
+    std::chrono::time_point<std::chrono::high_resolution_clock> ra_protocol_end_msg0;
+    std::chrono::time_point<std::chrono::high_resolution_clock> ra_protocol_start_rest;
+    std::chrono::time_point<std::chrono::high_resolution_clock> ra_protocol_end_rest;
+
+    std::chrono::time_point<std::chrono::high_resolution_clock> sgx_init_start;
+    std::chrono::time_point<std::chrono::high_resolution_clock> sgx_init_end;
 
     auto total_start = std::chrono::high_resolution_clock::now();
 
@@ -327,7 +334,8 @@ int main(int argc, char* argv[])
         }
     }
 
-    int i = 1; // We will do it twice, the first time is ECDSA quoting, the second one is EPID quoting
+    int i = 2; // We will do it twice, the first time is ECDSA quoting, the second one is EPID quoting
+
     do
     {
         if (i == 2)
@@ -339,6 +347,9 @@ int main(int argc, char* argv[])
             fprintf(OUTPUT, "\nSecond round, we will try EPID algorithm.\n");
         }
         // Preparation for remote attestation by configuring extended epid group id.
+
+	ra_protocol_start_msg0 = std::chrono::high_resolution_clock::now();
+
         {
             uint32_t extended_epid_group_id = 0;
             ret = sgx_get_extended_epid_group_id(&extended_epid_group_id);
@@ -395,6 +406,7 @@ int main(int argc, char* argv[])
             }
             fprintf(OUTPUT, "\nCall sgx_select_att_key_id success.");
         }
+	ra_protocol_end_msg0 = std::chrono::high_resolution_clock::now();
         // Remote attestation will be initiated if the ISV server challenges the ISV
         // app or if the ISV app detects it doesn't have the credentials
         // (shared secret) from a previous attestation required for secure
@@ -403,11 +415,18 @@ int main(int argc, char* argv[])
             // ISV application creates the ISV enclave.
             do
             {
+		sgx_init_start = std::chrono::high_resolution_clock::now();
+
                 ret = sgx_create_enclave(_T(ENCLAVE_PATH),
                                          SGX_DEBUG_FLAG,
                                          NULL,
                                          NULL,
                                          &enclave_id, NULL);
+		sgx_init_end = std::chrono::high_resolution_clock::now();
+		//std::chrono::duration<double> elapsed_final = create_enclave_end - create_enclave_start;
+		//std::cout << "\nInit Time: " << elapsed_final.count() << " s\n";
+
+
                 if(SGX_SUCCESS != ret)
                 {
                     ret = -1;
@@ -416,6 +435,8 @@ int main(int argc, char* argv[])
                     goto CLEANUP;
                 }
                 fprintf(OUTPUT, "\nCall sgx_create_enclave success.");
+	
+		ra_protocol_start_rest = std::chrono::high_resolution_clock::now();
 
                 ret = enclave_init_ra(enclave_id,
                                       &status,
@@ -821,7 +842,7 @@ int main(int argc, char* argv[])
                 ret = -1;
                 fprintf(OUTPUT, "\nError, call enclave_ra_close fail [%s].",
                         __FUNCTION__);
-            }
+	    } 
             else
             {
                 // enclave_ra_close was successful, let's restore the value that
@@ -830,6 +851,8 @@ int main(int argc, char* argv[])
             }
             fprintf(OUTPUT, "\nCall enclave_ra_close success.");
         }
+
+	ra_protocol_end_rest = std::chrono::high_resolution_clock::now();
 
         sgx_destroy_enclave(enclave_id);
 
@@ -846,11 +869,19 @@ int main(int argc, char* argv[])
         SAFE_FREE(p_msg3_full);
         SAFE_FREE(p_msg1_full);
         SAFE_FREE(p_msg0_full);
+	break;
     }while(--i);
 
     auto total_end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_final = total_end - total_start;
     std::cout << "\nTotal Time: " << elapsed_final.count() << " s\n";
+
+    std::chrono::duration<double> total_init_time = sgx_init_end - sgx_init_start;
+    std::chrono::duration<double> total_ra_time = (ra_protocol_end_msg0 - ra_protocol_start_msg0) + (ra_protocol_end_rest - ra_protocol_start_rest);
+
+    std::cout << "\nTotal Init Time: " << total_init_time.count() << " s\n";
+    std::cout << "\nTotal RA Time: " << total_ra_time.count() << " s\n";
+    
 
     printf("\nEnter a character before exit ...\n");
     //getchar();
