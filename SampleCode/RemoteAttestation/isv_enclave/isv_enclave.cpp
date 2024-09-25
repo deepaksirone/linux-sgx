@@ -36,7 +36,7 @@
 #include "sgx_tcrypto.h"
 #include "string.h"
 
-#include "EnclaveData.cpp"
+//#include "EnclaveData.cpp"
 
 // This is the public EC key of the SP. The corresponding private EC key is
 // used by the SP to sign data used in the remote attestation SIGMA protocol
@@ -332,7 +332,8 @@ sgx_status_t put_secret_data(
     uint32_t secret_size,
     uint8_t *p_gcm_mac)
 {
-    sgx_status_t ret = (sgx_status_t)big_data[0];
+    //sgx_status_t ret = (sgx_status_t)big_data[0];
+    sgx_status_t ret = SGX_SUCCESS;
     sgx_ec_key_128bit_t sk_key;
 
     do {

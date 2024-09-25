@@ -198,6 +198,18 @@ endif
 all: .config_$(Build_Mode)_$(SGX_ARCH)
 	@$(MAKE) target
 
+SGX_SDK_ENV=$(SGX_SDK)/environment
+
+.PHONY: benches benches_clean server server_clean
+benches: run_benches.sh run_bench.sh
+	sudo ./run_benches.sh $(SGX_SDK_ENV)
+benches_clean:
+	rm -rf out* results*
+server: libservice_provider.so
+	$(CXX) service_provider/server.cpp -L./ -L./sample_libcrypto -lservice_provider -o $@
+server_clean:
+	rm -rf service_provider/server server
+
 ifeq ($(Build_Mode), HW_RELEASE)
 target: libservice_provider.so $(App_Name) $(Enclave_Name)
 	@echo "The project has been built in release hardware mode."

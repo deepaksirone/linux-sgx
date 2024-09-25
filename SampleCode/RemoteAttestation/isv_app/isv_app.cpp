@@ -185,6 +185,8 @@ uint8_t* attestation_msg_samples[] =
 void PRINT_BYTE_ARRAY(
     FILE *file, void *mem, uint32_t len)
 {
+    return;
+
     if(!mem || !len)
     {
         fprintf(file, "\n( null )\n");
@@ -207,6 +209,9 @@ void PRINT_ATTESTATION_SERVICE_RESPONSE(
     FILE *file,
     ra_samp_response_header_t *response)
 {
+
+    return;
+
     if(!response)
     {
         fprintf(file, "\t\n( null )\n");
