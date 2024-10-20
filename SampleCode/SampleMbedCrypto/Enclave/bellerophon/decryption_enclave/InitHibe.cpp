@@ -11,17 +11,19 @@
 
 static char hibe_setup_keys[4096];
 static int32_t hibe_setup_keys_size = 0;
+static int depth_st = 0;
 
 extern "C" char *setup_hibe(int32_t depth, char *seed_buf, int32_t seed_size, int32_t *out_size);
 extern "C" int decrypt_hibe_integers(int32_t depth, char *setup_params, int32_t *identity, int32_t identity_size, char *seed_buf, int32_t seed_size, char *ciphertext,
 		int32_t ciphertext_size, char *encapsulated_key);
+extern "C" int decrypt_hibe_strings_depth(int32_t depth, char *setup_params, char *seed_buf, int32_t seed_size, char *ciphertext, int32_t ciphertext_size, char *encapsulated_key, char *out_buf);
 
-int init_hibe()
+int init_hibe(int depth)
 {
 	//char seed[32] = {0x0};
 	int32_t out_size;
 
-	char *hibe_setup_params = setup_hibe(5, NULL, 0, &out_size);
+	char *hibe_setup_params = setup_hibe(depth, NULL, 0, &out_size);
 	if (out_size <= 0)
 		return -1;
 	if (out_size > 4096)
@@ -30,6 +32,8 @@ int init_hibe()
 	hibe_setup_keys_size = out_size;
 	memcpy(hibe_setup_keys, hibe_setup_params, hibe_setup_keys_size);
 	
+	depth_st = depth;
+
 	return out_size;
 }
 //char ciphertext[] = "\xa3\xf7\x82\xf3\x82\x91\x4e\x53\x7b\x32\x73\x37\x26\xd5\xf6\xc9";
@@ -64,7 +68,7 @@ extern "C" uint32_t bellerophon_decrypt(dh_session_t* session_info, char* decryp
 	//char *setup_params_copy = (char *)malloc(832);
 	//memcpy(setup_params_copy, setup_params, 832);
 	//ocall_print_buffer((unsigned char *)ciphertext, 16);
-	int ret = decrypt_hibe_integers(5, (char *)hibe_setup_keys, (int32_t *)ids, 4, NULL, 0, (char *)dec_req->enc_key, 16, (char *)dec_req->encapsulated_key);
+	int ret = decrypt_hibe_strings_depth(depth_st, (char *)hibe_setup_keys, NULL, 0, (char *)dec_req->enc_key, 16, (char *)dec_req->encapsulated_key, NULL);
 	/*if (ret == 100) {
 		ocall_print_buffer(b1, 5);
 		return ATTESTATION_ERROR;

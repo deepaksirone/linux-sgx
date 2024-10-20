@@ -37,6 +37,8 @@ SGX_ARCH ?= x64
 SGX_DEBUG ?= 1
 NUM_PAD_PAGES ?= 1
 PADDING_TOOL ?= ./generate_large_array.py
+HIBE_ENCRYPTOR ?= hibe_encryptor
+HIBE_DEPTH ?= 5
 
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
@@ -278,7 +280,7 @@ App/Enclave_u.o: App/Enclave_u.c
 	@echo "CC   <=  $<"
 
 App/%.o: App/%.cpp App/Enclave_u.h App/DecryptEnclave_u.h
-	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(App_Cpp_Flags) -c $< -o $@
+	@$(CXX) $(SGX_COMMON_CXXFLAGS) -DHIBE_DEPTH=$(HIBE_DEPTH) $(App_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
 $(App_Name): App/Enclave_u.o App/DecryptEnclave_u.o $(App_Cpp_Objects)
@@ -360,7 +362,11 @@ Pad_Enclave: $(PADDING_TOOL)
 	@echo "Padding Enclave with" $(NUM_PAD_PAGES)
 	@$(PADDING_TOOL) $(NUM_PAD_PAGES) > ./Enclave/EnclaveData.cpp
 
-$(Enclave_Cpp_Objects): Pad_Enclave Enclave/Enclave_t.h #Enclave/bellerophon/DhSessionEnclave_t.h
+Insert_Ciphertext: $(HIBE_ENCRYPTOR) Enclave/bellerophon/bellerophon.cpp
+	$(HIBE_ENCRYPTOR) --hibe-depth $(HIBE_DEPTH) > ciphertext
+	sed -e '60{r ciphertext' -e 'd}' ./Enclave/bellerophon/bellerophon.cpp -i
+
+$(Enclave_Cpp_Objects): Pad_Enclave Insert_Ciphertext Enclave/Enclave_t.h #Enclave/bellerophon/DhSessionEnclave_t.h
 
 $(Enclave_Name): Enclave/Enclave_t.o  $(Enclave_Cpp_Objects) 
 	$(CXX) $^ -o $@ $(Enclave_Link_Flags)
@@ -389,7 +395,10 @@ endif
 	@$(SGX_ENCLAVE_SIGNER) sign -key $(Enclave_Test_Key) -enclave $(Encrypted_Enclave_Name) -out $@ -config $(Enclave_Config_File)
 	@echo "SIGN =>  $@"
 
-.PHONY: clean
+.PHONY: clean clean_results
+
+clean_results:
+	rm -rf csv* out* result* ciphertext
 
 clean:
 	@rm -f .config_* $(PCL_KEY) $(App_Name) $(Enclave_Name) $(Encrypted_Enclave_Name) $(Decrypt_Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* App/*.o App/*_u.c App/*_u.h $(Enclave_Cpp_Objects) Enclave/Enclave_t.* Enclave/bellerophon/*_t.* Enclave/bellerophon/*.o $(Enclave_Test_Key) *.enc

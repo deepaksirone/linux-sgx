@@ -55,6 +55,8 @@ sgx_measurement_t g_initiator_mrsigner = {
     }
 };
 
+sgx_measurement_t g_bellerophon_user_enclave_mrsigner;
+
 /* Function Description:
  *   this is to verify peer enclave's identity
  * For demonstration purpose, we verify below points:
@@ -81,6 +83,8 @@ extern "C" uint32_t verify_peer_enclave_trust(sgx_dh_session_enclave_identity_t*
     if (peer_enclave_identity->attributes.flags & SGX_FLAGS_DEBUG)
         return ENCLAVE_TRUST_ERROR;
 #endif
+    // Will be used later to derive the decryption key of the enclave
+    memcpy((uint8_t *)&g_bellerophon_user_enclave_mrsigner, (uint8_t *)&peer_enclave_identity->mr_signer, sizeof(sgx_measurement_t));
 
     return SUCCESS;
 }

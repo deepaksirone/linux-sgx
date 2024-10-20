@@ -255,7 +255,7 @@ int SGX_CDECL main(int argc, char *argv[])
     printf("Application enclave and decryption enclave initialized successfully\n");
 	
     auto start2 = std::chrono::high_resolution_clock::now();
-    sgx_status_t hibe_stat = init_hibe(responder_enclave_id, &result);
+    sgx_status_t hibe_stat = init_hibe(responder_enclave_id, &result, HIBE_DEPTH);
     auto finish2 = std::chrono::high_resolution_clock::now();
 
     printf("init_hibe return val: %d\n", result);
