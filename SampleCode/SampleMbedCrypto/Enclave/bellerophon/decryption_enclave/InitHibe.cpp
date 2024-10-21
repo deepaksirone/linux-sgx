@@ -11,12 +11,16 @@
 
 static char hibe_setup_keys[4096];
 static int32_t hibe_setup_keys_size = 0;
+static int32_t hibe_pvt_key_size = 0;
+static char hibe_pvt_key[4096];
 static int depth_st = 0;
 
 extern "C" char *setup_hibe(int32_t depth, char *seed_buf, int32_t seed_size, int32_t *out_size);
 extern "C" int decrypt_hibe_integers(int32_t depth, char *setup_params, int32_t *identity, int32_t identity_size, char *seed_buf, int32_t seed_size, char *ciphertext,
 		int32_t ciphertext_size, char *encapsulated_key);
 extern "C" int decrypt_hibe_strings_depth(int32_t depth, char *setup_params, char *seed_buf, int32_t seed_size, char *ciphertext, int32_t ciphertext_size, char *encapsulated_key, char *out_buf);
+extern "C" char *get_private_key(int32_t depth, char *setup_params, int32_t *out_size);
+extern "C" int decrypt_private_key(int32_t depth, char *setup_params, char *private_key, char *ciphertext, int32_t ciphertext_size, char *encapsulated_key, char *out_buf);
 
 int init_hibe(int depth)
 {
@@ -31,7 +35,16 @@ int init_hibe(int depth)
 	
 	hibe_setup_keys_size = out_size;
 	memcpy(hibe_setup_keys, hibe_setup_params, hibe_setup_keys_size);
-	
+
+	char *hibe_pk = get_private_key(depth, hibe_setup_keys, &out_size);
+	if (out_size <= 0)
+		return -3;
+	if (out_size > 4096)
+		return -4;
+
+	hibe_pvt_key_size = out_size;
+	memcpy(hibe_pvt_key, hibe_pk, hibe_pvt_key_size);
+
 	depth_st = depth;
 
 	return out_size;
@@ -68,7 +81,9 @@ extern "C" uint32_t bellerophon_decrypt(dh_session_t* session_info, char* decryp
 	//char *setup_params_copy = (char *)malloc(832);
 	//memcpy(setup_params_copy, setup_params, 832);
 	//ocall_print_buffer((unsigned char *)ciphertext, 16);
-	int ret = decrypt_hibe_strings_depth(depth_st, (char *)hibe_setup_keys, NULL, 0, (char *)dec_req->enc_key, 16, (char *)dec_req->encapsulated_key, NULL);
+	
+	//int ret = decrypt_hibe_strings_depth(depth_st, (char *)hibe_setup_keys, NULL, 0, (char *)dec_req->enc_key, 16, (char *)dec_req->encapsulated_key, NULL);
+	int ret = decrypt_private_key(depth_st, (char *)hibe_setup_keys, (char *)hibe_pvt_key, (char *)dec_req->enc_key, 16, (char *)dec_req->encapsulated_key, NULL);
 	/*if (ret == 100) {
 		ocall_print_buffer(b1, 5);
 		return ATTESTATION_ERROR;
