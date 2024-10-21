@@ -207,6 +207,7 @@ benches_clean:
 	rm -rf out* results*
 server: libservice_provider.so
 	$(CXX) service_provider/server.cpp -L./ -L./sample_libcrypto -lservice_provider -o $@
+	cp server service_provider/
 server_clean:
 	rm -rf service_provider/server server
 
@@ -306,7 +307,9 @@ endif
 	@$(SGX_ENCLAVE_SIGNER) sign -key $(Enclave_Test_Key) -enclave $(Enclave_Name) -out $@ -config $(Enclave_Config_File)
 	@echo "SIGN =>  $@"
 
-.PHONY: clean
+.PHONY: clean clean_results
+clean_results:
+	rm -rf out* result*
 
 clean:
-	@rm -f .config_* $(App_Name) $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) isv_app/isv_enclave_u.* $(Enclave_Cpp_Objects) isv_enclave/isv_enclave_t.* libservice_provider.* $(ServiceProvider_Cpp_Objects)
+	@rm -f .config_* $(App_Name) $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) isv_app/isv_enclave_u.* $(Enclave_Cpp_Objects) isv_enclave/isv_enclave_t.* libservice_provider.* $(ServiceProvider_Cpp_Objects) server service_provider/server
