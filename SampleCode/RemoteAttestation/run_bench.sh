@@ -10,4 +10,5 @@ while [ $i -lt $num_times ]; do
 done
 
 python3 parse_results.py out_$num_times\_$latency > results_$num_times\_$latency
+python3 generate_csv.py results_$num_times\_$latency
 

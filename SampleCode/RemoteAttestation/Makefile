@@ -309,7 +309,7 @@ endif
 
 .PHONY: clean clean_results
 clean_results:
-	rm -rf out* result*
+	rm -rf out* result* csv*
 
 clean:
 	@rm -f .config_* $(App_Name) $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) isv_app/isv_enclave_u.* $(Enclave_Cpp_Objects) isv_enclave/isv_enclave_t.* libservice_provider.* $(ServiceProvider_Cpp_Objects) server service_provider/server
