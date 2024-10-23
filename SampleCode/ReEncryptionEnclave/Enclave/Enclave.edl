@@ -51,7 +51,8 @@ enclave {
     //from "TrustedLibrary/Thread.edl" import *;
     trusted {
 	public int reEncryptHIBEWrappedKeys([in] char **hibe_keys, int hibe_keys_size, [in] char **encapsulated_keys, [in] char **old_identity, int old_identity_length, [in] char **new_identity, int new_identity_length, [out] char **re_encrypted_keys);
-	public int init_hibe();
+	public int init_hibe(int depth);
+	public int re_encrypt_wrapped_hibe_keys_string_depth(int depth, int num_iter, [in] char *ciphertext, int32_t ciphertext_size, [in] char *encapsulated_key, [out] char *out_buf);
 
     };
 

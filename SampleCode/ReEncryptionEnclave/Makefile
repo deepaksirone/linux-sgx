@@ -35,6 +35,8 @@ SGX_SDK ?= /opt/intel/sgxsdk
 SGX_MODE ?= HW
 SGX_ARCH ?= x64
 SGX_DEBUG ?= 1
+HIBE_DEPTH ?= 5
+HIBE_ENCRYPTOR ?= hibe_encryptor
 
 include $(SGX_SDK)/buildenv.mk
 
@@ -142,7 +144,7 @@ Enclave_Security_Link_Flags := -Wl,-z,relro,-z,now,-z,noexecstack
 # Do NOT move the libraries linked with `--start-group' and `--end-group' within `--whole-archive' and `--no-whole-archive' options.
 # Otherwise, you may get some undesirable errors.
 Enclave_Link_Flags := $(MITIGATION_LDFLAGS) $(Enclave_Security_Link_Flags) \
-    -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_TRUSTED_LIBRARY_PATH) -L./lib \
+    -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_TRUSTED_LIBRARY_PATH) -L./lib -L./Enclave/lib \
 	-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
 	-Wl,--start-group -lsgx_tstdc -lsgx_tcxx -lhohibe -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
 	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
@@ -228,6 +230,14 @@ App/Enclave_u.o: App/Enclave_u.c
 	@$(CC) $(SGX_COMMON_CFLAGS) $(App_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
+Insert_Ciphertext: $(HIBE_ENCRYPTOR) App/App.cpp
+	$(HIBE_ENCRYPTOR) --hibe-depth $(HIBE_DEPTH) > ciphertext
+	sed -e '187{r ciphertext' -e 'd}' ./App/App.cpp -i
+
+App/App.o: App/App.cpp App/Enclave_u.h Insert_Ciphertext
+	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(App_Cpp_Flags) -DHIBE_DEPTH=$(HIBE_DEPTH) -c $< -o $@
+	@echo "CXX  <=  $<"
+
 App/%.o: App/%.cpp  App/Enclave_u.h
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(App_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
@@ -249,7 +259,7 @@ Enclave/Enclave_t.o: Enclave/Enclave_t.c
 	@echo "CC   <=  $<"
 
 Enclave/%.o: Enclave/%.cpp Enclave/Enclave_t.h
-	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(Enclave_Cpp_Flags) -c $< -o $@
+	@$(CXX) $(SGX_COMMON_CXXFLAGS) -DHIBE_DEPTH=$(HIBE_DEPTH) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
 $(Enclave_Name): Enclave/Enclave_t.o $(Enclave_Cpp_Objects)
@@ -265,7 +275,10 @@ endif
 	@$(SGX_ENCLAVE_SIGNER) sign -key $(Enclave_Test_Key) -enclave $(Enclave_Name) -out $@ -config $(Enclave_Config_File)
 	@echo "SIGN =>  $@"
 
-.PHONY: clean
+.PHONY: clean clean_results
+
+clean_results:
+	rm -rf out* csv* results*
 
 clean:
-	@rm -f .config_* $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.* $(Enclave_Test_Key)
+	@rm -f .config_* ciphertext $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.* $(Enclave_Test_Key)

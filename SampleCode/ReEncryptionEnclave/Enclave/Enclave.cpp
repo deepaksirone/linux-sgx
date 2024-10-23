@@ -52,6 +52,10 @@ int printf(const char* fmt, ...)
 
 static char hibe_setup_keys[4096];
 static int32_t hibe_setup_keys_size = 0;
+static int32_t hibe_pvt_key_size = 0;
+static char hibe_pvt_key[4096];
+static int depth_st = 0;
+static int ciphertext_buf[4096];
 
 extern "C" char *setup_hibe(int32_t depth, char *seed_buf, int32_t seed_size, int32_t *out_size);
 extern "C" int decrypt_hibe_integers(int32_t depth, char *setup_params, int32_t *identity, int32_t identity_size, char *seed_buf, int32_t seed_size, char *ciphertext,
@@ -69,12 +73,18 @@ extern "C" int reencrypt_data(int32_t depth,
 				char *encapsulated_key, 
 				char *out_buf);
 
-int init_hibe()
+extern "C" char *get_private_key(int32_t depth, char *setup_params, int32_t *out_size);
+extern "C" int decrypt_private_key(int32_t depth, 
+		char *setup_params, char *private_key, char *ciphertext, int32_t ciphertext_size, char *encapsulated_key, char *out_buf);
+extern "C" int re_encrypt_strings_depth(int32_t depth, char *setup_params, char *private_key, char *ciphertext, int32_t ciphertext_size, char *encapsulated_key, char *out_buf);
+
+
+int init_hibe(int depth)
 {
         //char seed[32] = {0x0};
-        int32_t out_size;
+        /*int32_t out_size;
 
-        char *hibe_setup_params = setup_hibe(10, NULL, 0, &out_size);
+        char *hibe_setup_params = setup_hibe(depth, NULL, 0, &out_size);
         if (out_size <= 0)
                 return -1;
         if (out_size > 4096)
@@ -83,7 +93,42 @@ int init_hibe()
         hibe_setup_keys_size = out_size;
         memcpy(hibe_setup_keys, hibe_setup_params, hibe_setup_keys_size);
 
-        return out_size;
+        return out_size;*/
+	//char seed[32] = {0x0};
+	int32_t out_size;
+
+	char *hibe_setup_params = setup_hibe(depth, NULL, 0, &out_size);
+	if (out_size <= 0)
+		return -1;
+	if (out_size > 4096)
+		return -2;
+
+	hibe_setup_keys_size = out_size;
+	memcpy(hibe_setup_keys, hibe_setup_params, hibe_setup_keys_size);
+
+	char *hibe_pk = get_private_key(depth, hibe_setup_keys, &out_size);
+	if (out_size <= 0)
+		return -3;
+	if (out_size > 4096)
+		return -4;
+
+	hibe_pvt_key_size = out_size;
+	memcpy(hibe_pvt_key, hibe_pk, hibe_pvt_key_size);
+
+	depth_st = depth;
+
+	return out_size;
+
+}
+
+int re_encrypt_wrapped_hibe_keys_string_depth(int depth, int num_iter, char *ciphertext, int32_t ciphertext_size, char *encapsulated_key, char *out_buf) {
+
+	int ret = re_encrypt_strings_depth(depth, (char *)hibe_setup_keys, (char *)hibe_pvt_key, ciphertext, ciphertext_size, encapsulated_key, NULL);
+	if (ret == 0) {
+		memcpy(out_buf, ciphertext, ciphertext_size);
+	}
+
+	return ret;
 }
 
 
