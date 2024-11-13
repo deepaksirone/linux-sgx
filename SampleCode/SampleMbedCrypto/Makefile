@@ -39,6 +39,7 @@ NUM_PAD_PAGES ?= 1
 PADDING_TOOL ?= ./generate_large_array.py
 HIBE_ENCRYPTOR ?= hibe_encryptor
 HIBE_DEPTH ?= 5
+MAX_EPOCH_DEPTH ?= 5
 
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
@@ -280,7 +281,7 @@ App/Enclave_u.o: App/Enclave_u.c
 	@echo "CC   <=  $<"
 
 App/%.o: App/%.cpp App/Enclave_u.h App/DecryptEnclave_u.h
-	@$(CXX) $(SGX_COMMON_CXXFLAGS) -DHIBE_DEPTH=$(HIBE_DEPTH) $(App_Cpp_Flags) -c $< -o $@
+	@$(CXX) $(SGX_COMMON_CXXFLAGS) -DHIBE_DEPTH=$(HIBE_DEPTH) -DMAX_EPOCH_DEPTH=$(MAX_EPOCH_DEPTH) $(App_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
 $(App_Name): App/Enclave_u.o App/DecryptEnclave_u.o $(App_Cpp_Objects)
