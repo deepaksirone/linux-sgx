@@ -37,6 +37,8 @@
 
 # include <unistd.h>
 # include <pwd.h>
+//#include <poll.h>
+#include <fcntl.h>
 # define MAX_PATH FILENAME_MAX
 
 #define FAIL_SHA	0x1
@@ -217,6 +219,33 @@ void ocall_print_buffer(const unsigned char *buf, int len)
     printf("\n");
 }
 
+int untrusted_close(int fd) {
+	std::cout << "Closing file" << std::endl;
+	return close(fd);
+}
+
+ssize_t untrusted_write(int fd, const void *buf, size_t count) {
+	std::cout << "Writing File" << std::endl;
+	return write(fd, buf, count);
+}
+
+ssize_t untrusted_read(int fd, void *buf, size_t count) {
+	std::cout << "Reading file" << std::endl;
+	return read(fd, buf, count);
+}
+
+int untrusted_open(const char *pathname, int flags) {
+	std::cout << "Opening file" << std::endl;
+	return open(pathname, flags);
+}
+
+extern "C" int poll(struct pollfd *fds, nfds_t nfds, int timeout);
+
+int untrusted_poll(struct pollfd *fds, nfds_t nfds, int timeout, size_t bytes) {
+	(void) bytes;
+	return poll(fds, nfds, timeout);
+}
+
 
 /* Application entry */
 int SGX_CDECL main(int argc, char *argv[])
@@ -255,10 +284,24 @@ int SGX_CDECL main(int argc, char *argv[])
     printf("Application enclave and decryption enclave initialized successfully\n");
 	
     auto start2 = std::chrono::high_resolution_clock::now();
-    sgx_status_t hibe_stat = init_hibe(responder_enclave_id, &result, HIBE_DEPTH);
+    sgx_status_t hibe_stat = init_hibe(responder_enclave_id, &result, HIBE_DEPTH, MAX_EPOCH_DEPTH);
     auto finish2 = std::chrono::high_resolution_clock::now();
 
     printf("init_hibe return val: %d\n", result);
+
+
+    auto start3 = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < MAX_EPOCH_DEPTH - 2; i++) {
+    	sgx_status_t hibe_stat_rotate = rotate_minor_epoch(responder_enclave_id, &result);
+	std::cout << "Iter " << i << std::endl;
+    }
+
+    auto finish3 = std::chrono::high_resolution_clock::now();
+
+    printf("rotate_minor_epoch return val: %d\n", result);
+
+
+
 
     int mode = 1;
     auto start = std::chrono::high_resolution_clock::now();
@@ -289,10 +332,12 @@ int SGX_CDECL main(int argc, char *argv[])
     std::chrono::duration<double> elapsed = finish - start;
     std::chrono::duration<double> elapsed1 = finish1 - start1;
     std::chrono::duration<double> elapsed2 = finish2 - start2;
+    std::chrono::duration<double> elapsed3 = finish3 - start3;
 
     std::cout << "Init Elapsed time: " << elapsed1.count() << " s\n";
     std::cout << "Decryption Elapsed time: " << elapsed.count() << " s\n";
     std::cout << "Hibe init time: " << elapsed2.count() << " s\n";
+    std::cout << "Time for Rotation: " << elapsed3.count() << " s\n";
 
     //printf("Enter a character before exit ...\n");
     //getchar();

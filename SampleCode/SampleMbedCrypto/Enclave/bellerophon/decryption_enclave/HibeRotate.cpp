@@ -3,16 +3,70 @@
 
 //#include "HibeDerive.h"
 
+extern "C" char *derive_private_key_rotation(
+    int32_t total_depth,
+    int32_t depth_of_pvt_key,
+    char *private_key,
+    char *setup_params,
+    int32_t *out_size,
+    int32_t *capacity
+);
+
+extern "C" int deallocate_rust_vector(
+    char *ptr,
+    int32_t length,
+    int32_t capacity
+);
+
 int delete_node(HIBENode *node) {
 	//TODO: Delete hibe data from TPM
 	//if (node->left != NULL || node->right != NULL)
 	//	return -1;
+	if (!node)
+		return -1;
+
+	hibe_data_t *hibe_data = (hibe_data_t *)node->hibe_data;
+	if (hibe_data->is_rust_vector) {
+		deallocate_rust_vector(hibe_data->private_key, hibe_data->vector_size, hibe_data->vector_capacity);
+	}
+
 	delete node;
 	return 0;
 }
 
+hibe_data_t *derive_epoch_hibe(HIBETree *tree, HIBENode *parent, int next_id) {
+	if (!tree || !parent)
+		return NULL;
+	hibe_data_t *hibe_data = (hibe_data_t *)parent->hibe_data;
+	char *parent_pvt_key = hibe_data->private_key;
+
+	int32_t vector_size;
+	int32_t vector_capacity;
+
+	//return NULL;
+	char *new_epoch_pvt_key = derive_private_key_rotation(
+			tree->hibe_depth + tree->max_depth,
+			tree->hibe_depth + parent->depth,
+			parent_pvt_key, hibe_data->setup_keys,
+			&vector_size, &vector_capacity);
+
+	//return NULL;
+	if (!new_epoch_pvt_key)
+		return NULL;
+
+	hibe_data_t *new_hibe_data = (hibe_data_t *)malloc(sizeof(hibe_data_t));
+	new_hibe_data->depth = hibe_data->depth;
+	new_hibe_data->is_rust_vector = 1;
+	new_hibe_data->vector_size = vector_size;
+	new_hibe_data->vector_capacity = vector_capacity;
+	new_hibe_data->private_key = new_epoch_pvt_key;
+	new_hibe_data->setup_keys = hibe_data->setup_keys;
+
+
+	return new_hibe_data;
+}
 // Assuming that the initial epoch is 0
-HIBETree *new_hibe_tree(void *hibe_data, std::vector<int> &identities, int max_depth) {
+HIBETree *new_hibe_tree(void *hibe_data, int hibe_depth, int max_epoch_depth) {
 	HIBETree *tree = new HIBETree;
 	HIBENode *root = new HIBENode;
 
@@ -27,9 +81,10 @@ HIBETree *new_hibe_tree(void *hibe_data, std::vector<int> &identities, int max_d
 
 	tree->root = root;
 	tree->current_node = root;
-	tree->max_depth = max_depth;
+	tree->hibe_depth = hibe_depth;
+	tree->max_depth = max_epoch_depth;
 	tree->current_epoch = 0;
-	tree->identifiers = identities;
+	// tree->identifiers = {};
 
 	return tree;
 }
@@ -74,6 +129,8 @@ int compute_next_epoch(HIBETree *tree) {
 
 	HIBENode *parent = parent_to_next_epoch_node(tree->root, tree->current_epoch + 1, tree);
 	HIBENode *n = new HIBENode;
+	//return -10;
+
 	if (!n)
 		return -2;
 
@@ -87,11 +144,20 @@ int compute_next_epoch(HIBETree *tree) {
 
 	if (parent->left == NULL) {
 		//TODO: Implement this
-		n->hibe_data = NULL;//derive_epoch_hibe(tree, parent, 1);
+
+		//return -20;
+		//if (tree->current_epoch >= 1)
+		//	return -20;
+
+		n->hibe_data = derive_epoch_hibe(tree, parent, 1);
+		if (tree->current_epoch >= 1)
+			return -20;
+		//return -30;
 		parent->left = n;
+		//return -40;
 	} else if (parent->right == NULL) {
 		//TODO: Implement this
-		n->hibe_data = NULL; // derive_epoch_hibe(tree, parent, 0);
+		n->hibe_data = derive_epoch_hibe(tree, parent, 0);
 		parent->right = n;
 		// TODO: Work on the deletion and the TPM stuff
 		int ret = delete_node(tree->current_node);

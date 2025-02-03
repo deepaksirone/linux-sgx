@@ -39,11 +39,17 @@ enclave {
             public uint32_t exchange_report([in] sgx_dh_msg2_t *dh_msg2, [out] sgx_dh_msg3_t *dh_msg3, uint32_t session_id);
             public uint32_t generate_response([in, size = req_message_size] secure_message_t* req_message, size_t req_message_size, size_t max_payload_size, [out, size=resp_message_size] secure_message_t* resp_message, size_t resp_message_size, uint32_t session_id);
             public uint32_t end_session(uint32_t session_id);
-	    public int init_hibe(int depth);
+	    public int init_hibe(int depth, int epoch_depth);
+	    public int rotate_minor_epoch();
     };
 
     untrusted {
     	void ocall_print_buffer([in] const unsigned char *buf, int len);
+	int untrusted_open([in, string] const char *path, int flags);
+	int untrusted_poll([in, out, size = bytes] struct pollfd *fds, nfds_t nfds, int timeout, size_t bytes);
+	ssize_t untrusted_read(int fd, [out, size = count] void *buf, size_t count);
+	int untrusted_close(int fd);
+	ssize_t untrusted_write(int fd, [in, size = count] const void *buf, size_t count);
     };
 
 };

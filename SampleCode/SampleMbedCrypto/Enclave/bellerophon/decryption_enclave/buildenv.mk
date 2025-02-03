@@ -80,7 +80,7 @@ endif
 # ------------------------------------------------------------------
 SGX_MODE ?= HW
 SGX_ARCH ?= x64
-SGX_DEBUG ?= 1
+SGX_DEBUG ?= 0
 
 #-------------------------------------------------------------------
 # Define common compile flags used for GCC and G++ 

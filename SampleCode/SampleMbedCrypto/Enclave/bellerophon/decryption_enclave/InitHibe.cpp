@@ -5,6 +5,8 @@
 #include "Utility_E2.h"
 #include "sgx_dh.h"
 #include "sgx_utils.h"
+#include "HibeRotate.h"
+#include "tpm_layer.h"
 //#include "se_memcpy.h"
 #include <map>
 
@@ -14,6 +16,8 @@ static int32_t hibe_setup_keys_size = 0;
 static int32_t hibe_pvt_key_size = 0;
 static char hibe_pvt_key[4096];
 static int depth_st = 0;
+static int epoch_depth_st = 0;
+HIBETree *hibe_tree = NULL;
 
 extern "C" char *setup_hibe(int32_t depth, char *seed_buf, int32_t seed_size, int32_t *out_size);
 extern "C" int decrypt_hibe_integers(int32_t depth, char *setup_params, int32_t *identity, int32_t identity_size, char *seed_buf, int32_t seed_size, char *ciphertext,
@@ -22,12 +26,12 @@ extern "C" int decrypt_hibe_strings_depth(int32_t depth, char *setup_params, cha
 extern "C" char *get_private_key(int32_t depth, char *setup_params, int32_t *out_size);
 extern "C" int decrypt_private_key(int32_t depth, char *setup_params, char *private_key, char *ciphertext, int32_t ciphertext_size, char *encapsulated_key, char *out_buf);
 
-int init_hibe(int depth)
+int init_hibe(int depth, int epoch_depth)
 {
 	//char seed[32] = {0x0};
 	int32_t out_size;
 
-	char *hibe_setup_params = setup_hibe(depth, NULL, 0, &out_size);
+	char *hibe_setup_params = setup_hibe(depth + epoch_depth, NULL, 0, &out_size);
 	if (out_size <= 0)
 		return -1;
 	if (out_size > 4096)
@@ -45,10 +49,34 @@ int init_hibe(int depth)
 	hibe_pvt_key_size = out_size;
 	memcpy(hibe_pvt_key, hibe_pk, hibe_pvt_key_size);
 
+	hibe_data_t *hibe_data = (hibe_data_t *)malloc(sizeof(hibe_data_t));
+	hibe_data->depth = 0;
+	hibe_data->is_rust_vector = 0;
+	hibe_data->vector_size = 0;
+	hibe_data->vector_capacity = 0;
+	hibe_data->private_key = (char *)hibe_pvt_key;
+	hibe_data->setup_keys = (char *)hibe_setup_keys;
+
+	hibe_tree = new_hibe_tree(hibe_data, depth, epoch_depth);
+	if (!hibe_tree)
+		return -5;
+
+	// TODO: Use the derived provisioning key as the password
+	int32_t ret = store_hibe_key((unsigned char *)hibe_setup_keys, hibe_setup_keys_size, -1, (unsigned char *)"bug", 3);
+	if (ret)
+		return -ret;
+
 	depth_st = depth;
+	epoch_depth_st = epoch_depth;
 
 	return out_size;
 }
+
+int rotate_minor_epoch() {
+	return compute_next_epoch(hibe_tree);
+}
+
+
 //char ciphertext[] = "\xa3\xf7\x82\xf3\x82\x91\x4e\x53\x7b\x32\x73\x37\x26\xd5\xf6\xc9";
 //char encapsulated_key[] = "\xba\x55\x11\xde\x7a\x54\x65\x7c\x3a\xf3\xcf\xad\x62\x85\xae\x3a\x53\xee\x19\x76\xe2\xac\xd5\x5f\xf8\xc1\x94\x6e\xa\x1f\x33\x29\xd9\xd9\x96\x55\x53\x2b\xcb\xd1\x6\xb2\x67\xc9\xb8\x3f\x38\xa\xd8\xc5\xa9\xe8\x92\x4e\x48\xbf\xcd\x18\x71\x58\x93\xa4\xf5\x2\x49\x3b\x6\x81\x1d\x3e\xb5\x9\x1c\x20\x53\x53\x69\x37\xfc\x70\xe2\xb8\xf6\x9e\x72\xa2\xc\xf0\x30\x1f\xa9\x2\x63\xd7\x34\x2\x0\xe1\x50\xd2\xae\x1f\x72\x29\x7\x6d\x19\xde\xb1\xa8\x69\xb6\xf\xdd\x11\x62\xb7\x17\x51\xa\x5f\x52\x70\x57\x24\x49\xa8\x3\x79\xc8\xdb\x5c\x80\x59\x32\xb7\xa9\xb4\xa\x1\x9\x6e\x5d\x1e\xf0\x64\x44\x6e\x2f\x3d\x7\xe\x43\x38\x18\xb5\x4\x4f\x72\xde\x36\xca\x63\xcb\x16\x4a\xbc\x96\x96\x1\x7c\xa3\x79\xa4\xbb\xba\xe6\x5e\x5e\x14\xd7\xe\xa5\x6\x24\xc0\x94\xdb\xba\xb8\x74\x7f\xe\xdd\x2b\xfd\xad\x72\x49\x15\x8e\xeb\x8d\xac\xa3\xe6\xd2\x2\xbb\x1d\x51\x13\x7c\x38\xe9\x59\xe5\x91\x58\xa7\x39\x24\x87\x1b\x7f\xa1\x48\x45\x73\xd5\x76\xa9\x1a\xc7\xbe\xdd\xec\xfb\x56\x8c\x43\x79\x5\x34\xa3\x72\xbc\x12\xde\xd7\xc6\x80\xa1\x8e\x2c\xec\xa7\xad\x89\xc8\xb\xa4\x65\xac\xa\x97\xf3\xd6\x1\x4d\xf7\x43\x45\x12\xee\xcb\xff\x2c\xe3\xfb\x2\x8a\x28\x76\xfe\x66\xc1\x8e\xe0\x7f\x8b\x25\x8e\x28\x3b\x1\x0\x15\x5c\x15\x69\x98\x44\x48";
 

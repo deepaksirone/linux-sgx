@@ -109,6 +109,19 @@ typedef struct _decryption_request_t
 	uint8_t encapsulated_key[4096];
 } decryption_request_t;
 
+typedef unsigned long int nfds_t;
+struct pollfd
+  {
+    int fd;			/* File descriptor to poll.  */
+    short int events;		/* Types of events poller cares about.  */
+    short int revents;		/* Types of events that actually occurred.  */
+  };
+
+typedef long ssize_t;
+typedef unsigned long int nfds_t;
+//typedef size_t unsigned long;
+
+
 #pragma pack(pop)
 
 #endif
