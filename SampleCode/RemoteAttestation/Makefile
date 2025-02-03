@@ -76,6 +76,7 @@ SGX_COMMON_FLAGS += -Wall -Wextra -Winit-self -Wpointer-arith -Wreturn-type \
                     -Wcast-align -Wconversion -Wredundant-decls
 SGX_COMMON_CFLAGS := $(SGX_COMMON_FLAGS) -Wjump-misses-init -Wstrict-prototypes -Wunsuffixed-float-constants
 SGX_COMMON_CXXFLAGS := $(SGX_COMMON_FLAGS) -Wnon-virtual-dtor -std=c++11
+ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 ######## App Settings ########
 
@@ -122,7 +123,7 @@ ServiceProvider_Include_Paths := -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc
 
 ServiceProvider_C_Flags := -fPIC -Wno-attributes -I$(SGX_SDK)/include -Isample_libcrypto
 ServiceProvider_Cpp_Flags := $(ServiceProvider_C_Flags)
-ServiceProvider_Link_Flags :=  -shared -L$(SGX_LIBRARY_PATH) -lsample_libcrypto -Lsample_libcrypto
+ServiceProvider_Link_Flags :=  -shared -L$(SGX_LIBRARY_PATH) -lsample_libcrypto -L./sample_libcrypto -Wl,-rpath=$(ROOT_DIR)/sample_libcrypto
 
 ServiceProvider_Cpp_Objects := $(ServiceProvider_Cpp_Files:.cpp=.o)
 
@@ -206,8 +207,7 @@ benches: run_benches.sh run_bench.sh
 benches_clean:
 	rm -rf out* results*
 server: libservice_provider.so
-	$(CXX) service_provider/server.cpp -L./ -L./sample_libcrypto -lservice_provider -o $@
-	cp server service_provider/
+	$(CXX) service_provider/server.cpp -L./ -L./sample_libcrypto -lservice_provider -lsample_libcrypto -Wl,-rpath=$(ROOT_DIR) -Wl,-rpath=$(ROOT_DIR)/sample_libcrypto -o $@
 server_clean:
 	rm -rf service_provider/server server
 
@@ -311,5 +311,5 @@ endif
 clean_results:
 	rm -rf out* result* csv*
 
-clean:
-	@rm -f .config_* $(App_Name) $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) isv_app/isv_enclave_u.* $(Enclave_Cpp_Objects) isv_enclave/isv_enclave_t.* libservice_provider.* $(ServiceProvider_Cpp_Objects) server service_provider/server
+clean: server_clean
+	@rm -f .config_* $(App_Name) $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) isv_app/isv_enclave_u.* $(Enclave_Cpp_Objects) isv_enclave/isv_enclave_t.* libservice_provider.* $(ServiceProvider_Cpp_Objects)
