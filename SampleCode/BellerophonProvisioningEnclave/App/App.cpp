@@ -39,14 +39,14 @@
 # include <unistd.h>
 # include <pwd.h>
 # define MAX_PATH FILENAME_MAX
-
+#include "cpu_features.h"
 #include "sgx_urts.h"
 #include "App.h"
 //#include "Enclave_u.h"
 #include "provisioning/server.h"
 #include "type_length_value.h"
 #include "PVEClass.h"
-
+#include "rts.h"
 uint32_t bellerophon_gen_prov_msg1(
      pve_data_t &pve_data,
      uint8_t *msg1,
@@ -63,7 +63,7 @@ inline uint32_t estimate_msg1_size(bool performance_rekey)
     return static_cast<uint32_t>(PROVISION_REQUEST_HEADER_SIZE+field0_size+field1_size+field2_size); /*no checking for integer overflow since the size of msg1 is fixed and small*/
 }
 
-
+extern "C" sgx_status_t sgx_init_crypto_lib(uint64_t cpu_feature_indicator, uint32_t *cpuid_table);
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
 
@@ -249,6 +249,22 @@ int SGX_CDECL main(int argc, char *argv[])
     memset(msg, 0, msg_size);
     memcpy(&pve_data.pek.n, prov_key_be_modulus, sizeof(pve_data.pek.n)); // 384 byte modulus
     memcpy(&pve_data.pek.e, prov_key_be_exponent, sizeof(pve_data.pek.e)); // 4 bytes exponent
+    
+    system_features_t info;
+    memset(&info, 0, sizeof(system_features_t));
+    info.system_feature_set[0] = (uint64_t)1 << SYS_FEATURE_MSb;
+
+    //Since CPUID instruction is NOT supported within enclave, we enumerate the cpu features here and send to tRTS.
+    get_cpu_features(&info.cpu_features);
+    get_cpu_features_ext(&info.cpu_features_ext);
+    init_cpuinfo((uint32_t *)info.cpuinfo_table);
+    if(sgx_init_crypto_lib(info.cpu_features_ext,(uint32_t*)&info.cpuinfo_table) != 0)
+    {
+	printf("Failed to initialize tlibcrypto\n");
+        return -1;
+    }
+
+
 
     int ret = bellerophon_gen_prov_msg1(pve_data, msg, msg_size);
     if (ret != AE_SUCCESS) {
