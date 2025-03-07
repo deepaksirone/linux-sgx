@@ -187,7 +187,7 @@ uint32_t bellerophon_gen_prov_msg1(
     //    return ret;
     //}
     ret = get_pce_target(&pce_target_info, &pce_isv_svn);
-    if(ret != AE_SUCCESS){
+    if(ret != SGX_PCE_SUCCESS){
 	//printf("get_pce_target failed\n");
         printf("Fail to get PCE target info:( ae %d)\n",ret);
         return ret;
@@ -219,8 +219,8 @@ uint32_t bellerophon_gen_prov_msg1(
     ret = get_pce_info(&pek_report, (uint8_t *)&pve_data.pek,
         PEK_MOD_SIZE + sizeof(pve_data.pek.e), ALG_RSA_OAEP_3072, encrypted_ppid, sizeof(encrypted_ppid),
         &encrypted_ppid_output_size, &pce_isv_svn, &pce_id, &signature_scheme);
-    if(AE_SUCCESS != ret){
-        printf("Fail to generate pc_info:(ae%d)",ret);
+    if(SGX_PCE_SUCCESS != ret){
+        printf("Fail to generate pc_info:(ae %d)\n",ret);
 	//printf("get_pce_info failed\n");
         return ret;
     }
@@ -255,10 +255,12 @@ uint32_t bellerophon_gen_prov_msg1(
             printf("Fail to generate SK TLV of ProvMsg1 (ae %d)",ret);
             return ret;
         }
-        sgx_status = sgx_sha256_msg(reinterpret_cast<const uint8_t *>(&pve_data.pek.n),
-            static_cast<uint32_t>(sizeof(pve_data.pek.n) + sizeof(pve_data.pek.e)), &psid);
+	//TODO: Fix this bug
+	const unsigned char *some = (const unsigned char *)"aaaaaaaa";
+        sgx_status = sgx_sha256_msg(reinterpret_cast<const uint8_t *>(some),
+           static_cast<uint32_t>(5), &psid);
         if(SGX_SUCCESS != sgx_status){
-            printf("Fail to generate PSID, (sgx0x%x)",sgx_status);
+            printf("Fail to generate PSID, (sgx0x%x)", sgx_status);
             return AE_FAILURE;
         }
         se_static_assert(sizeof(sgx_sha256_hash_t)==sizeof(psid_t));

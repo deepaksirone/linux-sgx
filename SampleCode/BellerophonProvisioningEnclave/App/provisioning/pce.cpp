@@ -48,7 +48,7 @@ static PCE_status g_pce_status;
 #define PATH_SEPARATOR '/'
 extern "C" sgx_status_t sgx_get_metadata(const char* enclave_file, metadata_t *metadata);
 #define PCE_ENCLAVE_NAME "libsgx_pce.signed.so.1"
-#define PCE_ENCLAVE_NAME_LEGACY "libsgx_pce.signed.so"
+#define PCE_ENCLAVE_NAME_LEGACY "libsgx_pce_bellerophon.signed.so"
 
 
 static sgx_pce_error_t load_pce(sgx_enclave_id_t *p_pce_eid,
@@ -88,15 +88,17 @@ static sgx_pce_error_t load_pce(sgx_enclave_id_t *p_pce_eid,
 		printf("Call sgx_create_enclave for PCE. %s\n", pce_enclave_path);
 
                 sgx_status = sgx_create_enclave(PCE_ENCLAVE_NAME_LEGACY,
-                    0,
+                    1,
                     &launch_token,
                     &launch_token_updated,
                     p_pce_eid,
                     p_pce_attributes);
                 if (SGX_SUCCESS != sgx_status)
                 {
-                    SE_PROD_LOG("Error, call sgx_create_enclave for PCE fail [%s], SGXError:%04x.\n", __FUNCTION__, sgx_status);
-                }
+                    printf("Error, call sgx_create_enclave for PCE fail [%s], SGXError:%d .\n", __FUNCTION__, sgx_status);
+                } else {
+		    printf("Loaded PCE enclave\n");
+		}
 
                 // Retry in case there was a power transition that resulted is losing the enclave.
             } while (SGX_ERROR_ENCLAVE_LOST == sgx_status && enclave_lost_retry_time--);
@@ -127,11 +129,14 @@ static sgx_pce_error_t load_pce(sgx_enclave_id_t *p_pce_eid,
         SE_TRACE(SE_TRACE_ERROR, "Failed to unlock mutex");
         return SGX_PCE_INTERFACE_UNAVAILABLE;
     }
+
+    printf("load pce ret: %d\n", ret);
     return ret;
 }
 
 static void unload_pce(bool force = false)
 {
+    printf("Unloading PCE force: %d\n", force);
     int rc = se_mutex_lock(&g_pce_status.m_pce_mutex);
     if (rc != 1)
     {
@@ -147,7 +152,10 @@ static void unload_pce(bool force = false)
         SE_TRACE(SE_TRACE_NOTICE, "unload pce enclave 0X%llX\n", g_pce_status.m_pce_eid);
         sgx_destroy_enclave(g_pce_status.m_pce_eid);
         g_pce_status.m_pce_eid = 0;
+    } else {
+	printf("[Unload PCE] sgx_destroy_enclave not called, eid: %lu, g_pce_status.m_pce_enclave_load_policy: %d\n", g_pce_status.m_pce_eid, g_pce_status.m_pce_enclave_load_policy);
     }
+
     rc = se_mutex_unlock(&g_pce_status.m_pce_mutex);
     if (rc != 1)
     {
@@ -193,12 +201,15 @@ sgx_pce_error_t get_pce_info(const sgx_report_t *p_report,
             NULL);
         if (SGX_PCE_SUCCESS != pce_status)
         {
+	    printf("Failed to load enclave: %d\n", pce_status);
             return pce_status;
         }
+	printf("Here1\n");
+	fflush(stdout);
         int rc = se_mutex_lock(&g_pce_status.m_pce_mutex);
         if (rc != 1)
         {
-            SE_TRACE(SE_TRACE_ERROR, "Failed to lock mutex");
+            printf("Failed to lock mutex\n");
             return SGX_PCE_INTERFACE_UNAVAILABLE;
         }
         // Call get_pc_info ecall
@@ -216,17 +227,20 @@ sgx_pce_error_t get_pce_info(const sgx_report_t *p_report,
         rc = se_mutex_unlock(&g_pce_status.m_pce_mutex);
         if (rc != 1)
         {
-            SE_TRACE(SE_TRACE_ERROR, "Failed to unlock mutex");
+            printf("Failed to unlock mutex\n");
             return SGX_PCE_INTERFACE_UNAVAILABLE;
         }
         if (SGX_ERROR_ENCLAVE_LOST != sgx_status)
             break;
+	printf("Unloading PCE\n");
         unload_pce(true);
     } while (SGX_ERROR_ENCLAVE_LOST == sgx_status && enclave_lost_retry_time--);
 
+    printf("sgx_status: %d\n", sgx_status);
+
     if (SGX_SUCCESS != sgx_status)
     {
-        SE_TRACE(SE_TRACE_ERROR, "call to get_pc_info() failed. sgx_status = %04x.\n", sgx_status);
+        printf("call to get_pc_info() failed. sgx_status = %04x.\n", sgx_status);
         // /todo:  May want to retry on SGX_PCE_ENCLAVE_LOST caused by power transition
         if (SGX_ERROR_OUT_OF_EPC == sgx_status)
             pce_status = SGX_PCE_OUT_OF_EPC;
@@ -240,27 +254,36 @@ sgx_pce_error_t get_pce_info(const sgx_report_t *p_report,
             *p_pce_isvsvn = pce_info.pce_isvn;
             *p_pce_id = pce_info.pce_id;
             pce_status = SGX_PCE_SUCCESS;
+	    printf("PCE AE_SUCCESS\n");
             break;
         case AE_INVALID_PARAMETER:
             pce_status = SGX_PCE_INVALID_PARAMETER;
+	    printf("PCE AE_INVALID_PARAMETER\n");
             break;
         case PCE_INVALID_REPORT:
             pce_status = SGX_PCE_INVALID_REPORT;
+	    printf("PCE PCE_INVALID_REPORT\n");
             break;
         case PCE_CRYPTO_ERROR:
             pce_status = SGX_PCE_CRYPTO_ERROR;
+	    printf("PCE PCE_CRYPTO_ERROR\n");
             break;
         case PCE_INVALID_PRIVILEGE:
             pce_status = SGX_PCE_INVALID_PRIVILEGE;
+	    printf("PCE PCE_INVALID_PRIVILEGE\n");
             break;
         case AE_OUT_OF_MEMORY_ERROR:
+	    printf("PCE AE_OOM_ERROR\n");
             pce_status = SGX_PCE_OUT_OF_EPC;
             break;
         default:
+	    printf("AE ERROR: %d\n", ae_error);
+	    printf("PCE SGX_PCE_UNEXPECTED\n");
             pce_status = SGX_PCE_UNEXPECTED;
         }
     }
     unload_pce();
+    printf("pce_status: %d\n", pce_status);
 
     return pce_status;
 }

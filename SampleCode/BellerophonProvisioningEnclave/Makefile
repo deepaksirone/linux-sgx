@@ -250,7 +250,14 @@ App/%.o: App/%.cpp  App/Enclave_u.h App/provisioning/pce_u.c
 	@echo "CXX  <=  $<"
 
 App/provisioning/pce_u.c:  ../../psw/ae/pce/pce.edl
-		@$(SGX_EDGER8R) --search-path $(SGX_SDK)/include --untrusted --untrusted-dir ./App/provisioning/ $<
+	@$(SGX_EDGER8R) --search-path $(SGX_SDK)/include --untrusted --untrusted-dir ./App/provisioning/ $<
+
+App/provisioning/provision_enclave_u.c: ../../psw/ae/pve/provision_enclave.edl
+	@$(SGX_EDGER8R) --search-path $(SGX_SDK)/include --untrusted --untrusted-dir ./App/provisioning/ $<
+
+App/provisioning/provision_enclave_u.o: App/provisioning/provision_enclave_u.c
+	@$(CC) $(SGX_COMMON_CFLAGS) $(App_C_Flags) -c $< -o $@
+	@echo "CC   <=  $<"
 
 App/provisioning/pce_u.o: App/provisioning/pce_u.c
 	@$(CC) $(SGX_COMMON_CFLAGS) $(App_C_Flags) -c $< -o $@
@@ -262,7 +269,7 @@ App/provisioning/consttime_memequal.o: App/provisioning/consttime_memequal.c
 
 
 
-$(App_Name): App/Enclave_u.o $(App_Cpp_Objects) App/provisioning/pce_u.o App/provisioning/consttime_memequal.o   
+$(App_Name): App/Enclave_u.o $(App_Cpp_Objects) App/provisioning/pce_u.o App/provisioning/provision_enclave_u.o App/provisioning/consttime_memequal.o   
 	@$(CXX) $^ -o $@ $(App_Link_Flags)
 	@echo "LINK =>  $@"
 

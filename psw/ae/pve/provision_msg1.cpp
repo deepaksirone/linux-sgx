@@ -63,16 +63,17 @@ pve_status_t gen_prov_msg1_data(const sgx_target_info_t& pce_target_info,
                            const signed_pek_t& pek,
                            sgx_report_t& pek_report)
 {
+    (void)xegb;
     pve_status_t ret = PVEC_SUCCESS;
     sgx_status_t sgx_status = SGX_SUCCESS;
-    uint8_t pek_result = SGX_EC_INVALID_SIGNATURE;
+    //uint8_t pek_result = SGX_EC_INVALID_SIGNATURE;
     sgx_report_data_t report_data = {0};
-    extended_epid_group_blob_t local_xegb;
+    //extended_epid_group_blob_t local_xegb;
     sgx_sha_state_handle_t sha_handle = NULL;
     uint8_t crypto_suite = ALG_RSA_OAEP_3072;
 
     static_assert(sizeof(pek.n) == 384, "pek.n should be 384 bytes");
-    sgx_status = verify_xegb_with_default(xegb, &pek_result, local_xegb);
+    /*sgx_status = verify_xegb_with_default(xegb, &pek_result, local_xegb);
     if(SGX_SUCCESS != sgx_status){
         ret = sgx_error_to_pve_error(sgx_status);
         goto ret_point;
@@ -87,7 +88,7 @@ pve_status_t gen_prov_msg1_data(const sgx_target_info_t& pce_target_info,
     }else if(pek_result != SGX_EC_VALID){
         ret = PVEC_PEK_SIGN_ERROR; //use a special error code to indicate PEK Signature error
         goto ret_point;
-    }
+    }*/
     se_static_assert(sizeof(report_data)>=sizeof(sgx_sha256_hash_t)); /*hash size is too large to be hold by report*/
 
 
@@ -120,13 +121,13 @@ pve_status_t gen_prov_msg1_data(const sgx_target_info_t& pce_target_info,
         goto ret_point;
     }
 
-    if((pce_target_info.attributes.flags & SGX_FLAGS_PROVISION_KEY)!=SGX_FLAGS_PROVISION_KEY ||
+    /*if((pce_target_info.attributes.flags & SGX_FLAGS_PROVISION_KEY)!=SGX_FLAGS_PROVISION_KEY ||
         (pce_target_info.attributes.flags & SGX_FLAGS_DEBUG) != 0){
         //PCE must have access to provisioning key
         //Can't be debug PCE
         ret = PVEC_PARAMETER_ERROR;
         goto ret_point;
-    }
+    }*/
 
     sgx_status = sgx_create_report(&pce_target_info, &report_data, &pek_report);
     if(SGX_SUCCESS != sgx_status){

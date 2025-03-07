@@ -1,6 +1,6 @@
 <EnclaveConfiguration>
-  <IntelSigned>1</IntelSigned>
-  <ProvisionKey>1</ProvisionKey>
+  <IntelSigned>0</IntelSigned>
+  <ProvisionKey>0</ProvisionKey>
   <LaunchKey>0</LaunchKey>
   <ProdID>0x1</ProdID>
   <ISVSVN>0xF</ISVSVN>
@@ -11,5 +11,5 @@
   <StackMinSize>0x8000</StackMinSize>
   <HeapMaxSize>0x50000</HeapMaxSize>
   <HeapMinSize>0x50000</HeapMinSize>
-  <DisableDebug>1</DisableDebug>
+  <DisableDebug>0</DisableDebug>
 </EnclaveConfiguration>

@@ -108,9 +108,9 @@ uint32_t get_pc_info(const sgx_report_t* report,
         return PCE_INVALID_REPORT;
     }
     //only PvE and QE3 could use the interface which has flag SGX_FLAGS_PROVISION_KEY
-    if((report->body.attributes.flags & SGX_FLAGS_PROVISION_KEY) != SGX_FLAGS_PROVISION_KEY){
-        return PCE_INVALID_PRIVILEGE;
-    }
+    //if((report->body.attributes.flags & SGX_FLAGS_PROVISION_KEY) != SGX_FLAGS_PROVISION_KEY){
+    //    return PCE_INVALID_PRIVILEGE;
+    //}
     uint8_t hash_buf[SGX_REPORT_DATA_SIZE];//hash value only use 32 bytes but data in report has 64 bytes size
     se_static_assert(sizeof(hash_buf)>=sizeof(sgx_sha256_hash_t));
     memset(hash_buf, 0, sizeof(hash_buf));
@@ -153,9 +153,11 @@ uint32_t get_pc_info(const sgx_report_t* report,
     do {
         //get ppid
         //
-        if (get_ppid(&ppid_buf) != AE_SUCCESS) {
-            break;
-        }
+        //if (get_ppid(&ppid_buf) != AE_SUCCESS) {
+        //    break;
+        //}
+	// Set a dummy ppid here
+	memset_s(&(ppid_buf.ppid), sizeof(ppid_t), 0xa, sizeof(ppid_buf));
 
         //create public exponent value represented in little endian
         //
@@ -283,9 +285,9 @@ uint32_t certify_enclave(const psvn_t* cert_psvn,
         return PCE_INVALID_REPORT;
     }
     //only PvE and QE3 could use the interface which has flag SGX_FLAGS_PROVISION_KEY
-    if((report->body.attributes.flags & SGX_FLAGS_PROVISION_KEY) != SGX_FLAGS_PROVISION_KEY){
-        return PCE_INVALID_PRIVILEGE;
-    }
+    //if((report->body.attributes.flags & SGX_FLAGS_PROVISION_KEY) != SGX_FLAGS_PROVISION_KEY){
+    //    return PCE_INVALID_PRIVILEGE;
+    //}
     ae_ret = random_stack_advance(get_pce_priv_key, cert_psvn, pec_prv_key);
     if(AE_SUCCESS!=ae_ret){
         goto ret_point;
