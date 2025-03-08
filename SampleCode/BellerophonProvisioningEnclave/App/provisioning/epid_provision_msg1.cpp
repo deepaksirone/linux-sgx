@@ -256,9 +256,9 @@ uint32_t bellerophon_gen_prov_msg1(
             return ret;
         }
 	//TODO: Fix this bug
-	const unsigned char *some = (const unsigned char *)"aaaaaaaa";
-        sgx_status = sgx_sha256_msg(reinterpret_cast<const uint8_t *>(some),
-           static_cast<uint32_t>(5), &psid);
+	//const unsigned char *some = (const unsigned char *)"aaaaaaaa";
+        sgx_status = sgx_sha256_msg(reinterpret_cast<const uint8_t *>(&pve_data.pek.n),
+           static_cast<uint32_t>(sizeof(pve_data.pek.n) + sizeof(pve_data.pek.e)), &psid);
         if(SGX_SUCCESS != sgx_status){
             printf("Fail to generate PSID, (sgx0x%x)", sgx_status);
             return AE_FAILURE;
@@ -353,6 +353,30 @@ uint32_t bellerophon_gen_prov_msg1(
                  AESM_DBG_ERROR("Fail to generate ek1:(sgx%d)",sgx_status);
                  return AE_FAILURE;
         }
+
+	printf("ek1: ");
+	for (int i = 0; i < 16; i++) {
+		unsigned char b = ((unsigned char *)&ek1)[i];
+		printf("%d ", (int)b);
+	}
+	printf("\n");
+
+	printf("pve_data.sk: ");
+	for (int i = 0; i < 16; i++) {
+		unsigned char b = ((unsigned char *)&pve_data.sk)[i];
+		printf("%d ", (int)b);
+	}
+
+	printf("\n");
+
+	printf("pve_data.xid: ");
+	for (int i = 0; i < XID_SIZE; i++) {
+		unsigned char b = ((unsigned char *)&pve_data.xid)[i];
+		printf("%d ", (int)b);
+	}
+
+	printf("\n");
+
 
         field2 = (uint8_t *)malloc(tlvs_msg2_sub.get_tlv_msg_size());
         if(NULL == field2){

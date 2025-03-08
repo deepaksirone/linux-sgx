@@ -219,6 +219,18 @@ int connect_to_prov_server() {
 	return connect_to_server(hostname, port);
 }
 
+int send_message(int fd, uint8_t *msg, uint32_t msg_size) {
+	int size = 0;
+	do {
+		int ret = write(fd, msg + size, msg_size - size);
+		if (ret < 0)
+			return ret;
+		size += ret;
+	} while (size < msg_size);
+
+	return size;
+}
+
 /* Application entry */
 int SGX_CDECL main(int argc, char *argv[])
 {
@@ -278,6 +290,12 @@ int SGX_CDECL main(int argc, char *argv[])
 	    printf("Connection to server failed\n");
 	    return -1;
     }
+
+    if (send_message(fd, msg, msg_size) < 0) {
+	    printf("Sending prov msg1 failed\n");
+	    return -1;
+    }
+
 
     //pve_data_t pve_data;
 
