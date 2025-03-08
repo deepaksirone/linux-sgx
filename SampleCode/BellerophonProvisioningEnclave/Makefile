@@ -245,15 +245,15 @@ App/App.o: App/App.cpp App/Enclave_u.h Insert_Ciphertext Insert_Pub_Key
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(App_Cpp_Flags) -DHIBE_DEPTH=$(HIBE_DEPTH) -c $< -o $@
 	@echo "CXX  <=  $<"
 
-App/%.o: App/%.cpp  App/Enclave_u.h App/provisioning/pce_u.c
+App/%.o: App/%.cpp  App/Enclave_u.h App/provisioning/pce_u.c App/provisioning/provision_enclave_u.c
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(App_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
 App/provisioning/pce_u.c:  ../../psw/ae/pce/pce.edl
-	@$(SGX_EDGER8R) --search-path $(SGX_SDK)/include --untrusted --untrusted-dir ./App/provisioning/ $<
+	$(SGX_EDGER8R) --search-path $(SGX_SDK)/include --untrusted --untrusted-dir ./App/provisioning/ $<
 
 App/provisioning/provision_enclave_u.c: ../../psw/ae/pve/provision_enclave.edl
-	@$(SGX_EDGER8R) --search-path $(SGX_SDK)/include --untrusted --untrusted-dir ./App/provisioning/ $<
+	$(SGX_EDGER8R) --search-path $(SGX_SDK)/include --untrusted --untrusted-dir ./App/provisioning/ $<
 
 App/provisioning/provision_enclave_u.o: App/provisioning/provision_enclave_u.c
 	@$(CC) $(SGX_COMMON_CFLAGS) $(App_C_Flags) -c $< -o $@
@@ -308,4 +308,4 @@ clean_results:
 	rm -rf out* csv* results*
 
 clean:
-	@rm -f .config_* ciphertext pubkey.txt pubkey_array $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/provisioning/pce_u.* App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.* $(Enclave_Test_Key)
+	@rm -f .config_* ciphertext pubkey.txt pubkey_array $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/provisioning/*_u.* App/provisioning/pce_u.* App/Enclave_u.* App/provisioning/*.o $(Enclave_Cpp_Objects) Enclave/Enclave_t.* $(Enclave_Test_Key)
