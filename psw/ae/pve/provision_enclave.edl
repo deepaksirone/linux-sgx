@@ -37,6 +37,10 @@ enclave{
                                                    [in]const signed_pek_t *pek,
                                                    [in]const sgx_target_info_t *pce_target_info,
                                                    [out]sgx_report_t *msg1_output);
+	public uint32_t gen_prov_msg2_data_wrapper([in, size=ciphertext_len] uint8_t *ciphertext, uint32_t ciphertext_len, 
+						   [in, size=tag_len] uint8_t *tag, uint32_t tag_len,
+                				   [in, size=iv_size] uint8_t *iv, uint32_t iv_size, 
+						   [out, size=ciphertext_len] uint8_t *challenge);
 
         public uint32_t proc_prov_msg2_data_wrapper([in]const proc_prov_msg2_blob_input_t *msg2_input,
                                                     uint8_t performance_rekey_used,

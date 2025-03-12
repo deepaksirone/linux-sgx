@@ -80,6 +80,13 @@ ae_error_t pve_error_2_ae_error(pve_status_t pve_error)
     }
 }
 
+uint32_t gen_prov_msg2_data_wrapper(uint8_t *ciphertext, uint32_t ciphertext_len, uint8_t *tag, uint32_t tag_len, 
+		uint8_t *iv, uint32_t iv_size, uint8_t *challenge) {
+	sgx_status_t status = SGX_SUCCESS;
+	status = bellerophon_gen_msg2_data(ciphertext, ciphertext_len, tag, tag_len, iv, iv_size, challenge);
+	return status;
+}
+
 //proxy function to generate data for ProvMsg1
 uint32_t gen_prov_msg1_data_wrapper(
     const extended_epid_group_blob_t *xegb,

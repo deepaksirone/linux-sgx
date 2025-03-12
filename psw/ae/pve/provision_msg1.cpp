@@ -141,3 +141,28 @@ ret_point:
     }
     return ret;
 }
+
+sgx_status_t bellerophon_gen_msg2_data(uint8_t *ciphertext, uint32_t ciphertext_size, 
+		uint8_t *tag, uint32_t tag_len, uint8_t *iv, uint32_t iv_size, uint8_t *challenge) {
+
+	(void) tag_len;
+	// Dummy for getting the provisioning key
+	//sgx_aes_gcm_128bit_key_t prov_key;
+	//memset(&prov_key, 0xa, sizeof(sgx_aes_gcm_128bit_key_t));
+	uint8_t prov_key[16];
+        memset(prov_key, 0xa, 16);
+
+	uint8_t temp_challenge[8];
+	//uint8_t *aad = (uint8_t *)"bellerophon_msg2_challenge";
+
+	sgx_status_t ret = sgx_rijndael128GCM_decrypt(&prov_key, ciphertext, ciphertext_size, (uint8_t *)temp_challenge, iv, iv_size,
+                                        NULL, 0, (sgx_aes_gcm_128bit_tag_t *)tag);
+	if (ret != SGX_SUCCESS) {
+		return ret;
+	}
+
+	memcpy(challenge, &temp_challenge, sizeof(temp_challenge));
+
+	//return PVEC_SUCCESS;
+	return SGX_SUCCESS;
+}

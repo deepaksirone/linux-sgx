@@ -60,4 +60,19 @@ int bellerophon_gen_prov_msg1_data(const signed_pek_t* pek, const sgx_target_inf
 	return ret;
 }
 
+int bellerophon_gen_prov_msg2_data(uint8_t *ciphertext, uint32_t ciphertext_len, uint8_t *tag, uint32_t tag_len, uint8_t *iv, uint32_t iv_len, uint8_t *challenge) {
+	sgx_enclave_id_t eid = 0;
+        if (load_provision_enclave(&eid)) {
+                printf("[provision_enclave.cpp] Failed to load provisioning enclave\n");
+                return -1;
+        }
 
+	uint32_t retval;
+	int ret = gen_prov_msg2_data_wrapper(eid, &retval, ciphertext, ciphertext_len, tag, tag_len, iv, iv_len, challenge);
+
+	printf("PvE msg2 ret: %d, retval: %u\n", ret, retval);
+
+	sgx_destroy_enclave(eid);
+
+	return ret;
+}

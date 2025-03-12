@@ -448,6 +448,11 @@ tlv_status_t TLVsMsg::add_block_cipher_info(const uint8_t sk[SK_SIZE])
     ADD_TLV_DBG_INFO \
     return TLV_SUCCESS;
 
+tlv_status_t TLVsMsg::add_data(uint8_t *data, uint32_t data_size, uint8_t type) {
+        ADD_TLV_BY_DATA_SIZE(type, data, data_size)
+}
+
+
 tlv_status_t TLVsMsg::add_mac(const uint8_t mac[MAC_SIZE])
 {
     ADD_TLV_BY_DATA_SIZE(TLV_MESSAGE_AUTHENTICATION_CODE, mac, MAC_SIZE)

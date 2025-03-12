@@ -377,6 +377,7 @@ public:
     tlv_status_t add_quote(const uint8_t *quote_data, uint32_t quote_size);
     tlv_status_t add_quote_signature(const uint8_t *quote_signature, uint32_t sign_size);
     tlv_status_t add_x509_csr(const uint8_t *csr_data, uint32_t csr_size);
+    tlv_status_t add_data(uint8_t *data, uint32_t data_size, uint8_t type);
 };
 
 #endif
