@@ -233,7 +233,7 @@ extern "C" void ocall_print_string(const char *s) {
 	printf("%s", s);
 }
 
-int receive_message2(int fd, uint8_t **msg, uint32_t *msg_size) {
+int receive_message(int fd, uint8_t **msg, uint32_t *msg_size) {
 	int header_size = sizeof(provision_response_header_t);
 	uint8_t *header = (uint8_t *)malloc(header_size);
 	if (!header)
@@ -336,7 +336,7 @@ int SGX_CDECL main(int argc, char *argv[])
 
     uint8_t *msg2 = NULL;
     uint32_t msg2_size = 0;
-    if (receive_message2(fd, &msg2, &msg2_size) < 0) {
+    if (receive_message(fd, &msg2, &msg2_size) < 0) {
 	    printf("Failed to receive prov msg2\n");
 	    return -1;
     }
@@ -351,10 +351,28 @@ int SGX_CDECL main(int argc, char *argv[])
     }
 
     
-    if (send_message(fd, msg3, msg3_size) < 0 ) {
+    if (send_message(fd, msg3, msg3_size) < 0) {
 	    printf("Failed to send msg3\n");
 	    return -1;
     }
+
+    uint8_t *msg4 = NULL;
+    uint32_t msg4_size;
+
+    if (receive_message(fd, &msg4, &msg4_size) < 0) {
+	    printf("Failed to receive msg4\n");
+	    return -1;
+    }
+    
+    /*uint8_t *msg5 = NULL;
+    uint32_t msg5_size;
+
+    if (bellerophon_gen_prov_msg5(pve_data, msg4, msg4_size, &msg5, &msg5_size) != 0) {
+	    printf("Failed to generate msg5\n");
+	    return -1;
+    }*/
+
+
 
     //pve_data_t pve_data;
 
