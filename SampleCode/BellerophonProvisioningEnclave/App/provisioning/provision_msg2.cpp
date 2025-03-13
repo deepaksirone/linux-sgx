@@ -104,7 +104,8 @@ uint32_t bellerophon_gen_prov_msg2(pve_data_t &pve_data, uint8_t *msg, uint32_t 
 
 	TLVsMsg tlvs_msg3; 
 	tlvs_msg3.add_data(challenge, 8, TLV_NONCE);
-	tlvs_msg3.add_data((uint8_t*)&pve_data.pek, sizeof(signed_pek_t), TLV_PEK);
+	tlvs_msg3.add_data((uint8_t*)&pve_data.pek.n, sizeof(pve_data.pek.n), TLV_PEK);
+	tlvs_msg3.add_data((uint8_t*)&pve_data.pek.e, sizeof(pve_data.pek.e), TLV_PEK);
 	
 	uint8_t *msg3_buf = (uint8_t *)malloc(tlvs_msg3.get_tlv_msg_size() + sizeof(provision_request_header_t));
 	if (gen_msg3_header(reinterpret_cast<provision_request_header_t *>(msg3_buf), tlvs_msg3.get_tlv_msg_size(), pve_data.xid) != AE_SUCCESS) {
