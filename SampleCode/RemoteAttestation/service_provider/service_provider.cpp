@@ -186,7 +186,7 @@ static sp_db_item_t g_sp_db;
 
 static const sample_extended_epid_group* g_sp_extended_epid_group_id= NULL;
 static bool g_is_sp_registered = false;
-static bool g_return_ecdsa_att_key_id = false;
+static bool g_return_ecdsa_att_key_id = true;
 static int g_sp_credentials = 0;
 static int g_authentication_token = 0;
 
@@ -271,11 +271,11 @@ int sp_ra_proc_msg0_req(const sample_ra_msg0_t *p_msg0,
             if (memcpy_s(p_msg0_resp_full->body, msg0_resp_size,
                 g_ecdsa_p256_att_key_id_list, msg0_resp_size)) {
                 fprintf(stderr, "\nError, cannot do memcpy in [%s].", __FUNCTION__);
-                g_return_ecdsa_att_key_id = false;
+                //g_return_ecdsa_att_key_id = false;
                 ret = SP_INTERNAL_ERROR;
                 goto CLEANUP;
             }
-            g_return_ecdsa_att_key_id = false;
+            //g_return_ecdsa_att_key_id = false;
         }
         else // Return EPID attestation key id
         {
