@@ -41,6 +41,9 @@ enclave{
 						   [in, size=tag_len] uint8_t *tag, uint32_t tag_len,
                 				   [in, size=iv_size] uint8_t *iv, uint32_t iv_size, 
 						   [out, size=ciphertext_len] uint8_t *challenge);
+	public uint32_t proc_msg6_data_wrapper([in, size=enc_hibe_key_len] uint8_t *enc_hibe_pvt_key, uint32_t enc_hibe_key_len, 
+					       [in, size=tag_len] uint8_t *tag, uint32_t tag_len,
+                			       [in, size=iv_size] uint8_t *iv, uint32_t iv_size);
 
         public uint32_t proc_prov_msg2_data_wrapper([in]const proc_prov_msg2_blob_input_t *msg2_input,
                                                     uint8_t performance_rekey_used,

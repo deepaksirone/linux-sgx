@@ -28,7 +28,7 @@ static ae_error_t gen_msg3_header(provision_request_header_t *header, uint32_t p
 }
 
 
-uint32_t bellerophon_gen_prov_msg2(pve_data_t &pve_data, uint8_t *msg, uint32_t msg_size, uint8_t **msg3, uint32_t *msg3_size) {
+uint32_t bellerophon_gen_prov_msg2(pve_data_t &pve_data, uint8_t *n_le, uint32_t n_size, uint8_t *e_le, uint32_t e_size, uint8_t *msg, uint32_t msg_size, uint8_t **msg3, uint32_t *msg3_size) {
 	/// Deserializing the TLVs from the message
 	if (msg_size <= 0)
 		return 1;
@@ -104,8 +104,8 @@ uint32_t bellerophon_gen_prov_msg2(pve_data_t &pve_data, uint8_t *msg, uint32_t 
 
 	TLVsMsg tlvs_msg3; 
 	tlvs_msg3.add_data(challenge, 8, TLV_NONCE);
-	tlvs_msg3.add_data((uint8_t*)&pve_data.pek.n, sizeof(pve_data.pek.n), TLV_PEK);
-	tlvs_msg3.add_data((uint8_t*)&pve_data.pek.e, sizeof(pve_data.pek.e), TLV_PEK);
+	tlvs_msg3.add_data((uint8_t*)n_le, n_size, TLV_PEK);
+	tlvs_msg3.add_data((uint8_t*)e_le, e_size, TLV_PEK);
 	
 	uint8_t *msg3_buf = (uint8_t *)malloc(tlvs_msg3.get_tlv_msg_size() + sizeof(provision_request_header_t));
 	if (gen_msg3_header(reinterpret_cast<provision_request_header_t *>(msg3_buf), tlvs_msg3.get_tlv_msg_size(), pve_data.xid) != AE_SUCCESS) {

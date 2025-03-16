@@ -166,3 +166,22 @@ sgx_status_t bellerophon_gen_msg2_data(uint8_t *ciphertext, uint32_t ciphertext_
 	//return PVEC_SUCCESS;
 	return SGX_SUCCESS;
 }
+
+sgx_status_t bellerophon_store_hibe_key(uint8_t *enc_hibe_key, uint32_t enc_hibe_key_size, uint8_t *tag, uint32_t tag_len, uint8_t *iv, uint32_t iv_size) {
+	(void) tag_len;
+
+	uint8_t prov_key[16];
+	memset(prov_key, 0xa, 16);
+	
+	uint8_t* hibe_pvt_key = (uint8_t *)malloc(enc_hibe_key_size);
+
+	sgx_status_t ret = sgx_rijndael128GCM_decrypt(&prov_key, enc_hibe_key, enc_hibe_key_size, hibe_pvt_key, iv, iv_size, NULL, 0, (sgx_aes_gcm_128bit_tag_t *)tag);
+	if (ret != SGX_SUCCESS) {
+		return ret;
+	}
+
+	//TODO: Store this into TPM
+	
+	return SGX_SUCCESS;
+}
+

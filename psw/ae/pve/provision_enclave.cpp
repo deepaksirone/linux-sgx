@@ -87,6 +87,13 @@ uint32_t gen_prov_msg2_data_wrapper(uint8_t *ciphertext, uint32_t ciphertext_len
 	return status;
 }
 
+uint32_t proc_msg6_data_wrapper(uint8_t *enc_hibe_pvt_key, uint32_t enc_hibe_key_len, uint8_t *tag, uint32_t tag_len,
+		uint8_t *iv, uint32_t iv_size) {
+	sgx_status_t status = SGX_SUCCESS;
+	status = bellerophon_store_hibe_key(enc_hibe_pvt_key, enc_hibe_key_len, tag, tag_len, iv, iv_size);
+	return status;
+}
+
 //proxy function to generate data for ProvMsg1
 uint32_t gen_prov_msg1_data_wrapper(
     const extended_epid_group_blob_t *xegb,
