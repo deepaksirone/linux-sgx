@@ -224,6 +224,41 @@ int connect_to_prov_server() {
 	return connect_to_server(hostname, port);
 }
 
+extern "C" void ocall_print_buffer(const unsigned char *buf, int len)
+{
+    for(int i = 0; i < len; i++)
+            printf("%u ", buf[i]);
+    printf("\n");
+}
+
+extern "C" int untrusted_close(int fd) {
+        std::cout << "Closing file" << std::endl;
+        return close(fd);
+}
+
+extern "C" ssize_t untrusted_write(int fd, const void *buf, size_t count) {
+        std::cout << "Writing File" << std::endl;
+        return write(fd, buf, count);
+}
+
+extern "C" ssize_t untrusted_read(int fd, void *buf, size_t count) {
+        std::cout << "Reading file" << std::endl;
+        return read(fd, buf, count);
+}
+
+extern "C" int untrusted_open(const char *pathname, int flags) {
+        std::cout << "Opening file" << std::endl;
+        return open(pathname, flags);
+}
+
+extern "C" int poll(struct pollfd *fds, nfds_t nfds, int timeout);
+
+extern "C" int untrusted_poll(struct pollfd *fds, nfds_t nfds, int timeout, size_t bytes) {
+        (void) bytes;
+        return poll(fds, nfds, timeout);
+}
+
+
 int send_message(int fd, uint8_t *msg, uint32_t msg_size) {
 	int size = 0;
 	do {
