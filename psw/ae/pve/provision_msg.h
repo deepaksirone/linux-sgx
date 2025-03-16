@@ -145,6 +145,8 @@ typedef struct _gen_endpoint_selection_output_t{
 
 #pragma pack()
 
+typedef unsigned long int nfds_t; 
+
 #define PSVN_START_IN_DEVICE_ID sizeof(ppid_t)
 #define PPID_START_IN_DEVICE_ID 0
 #define FMSP_START_IN_DEVICE_ID (sizeof(ppid_t)+sizeof(psvn_t))

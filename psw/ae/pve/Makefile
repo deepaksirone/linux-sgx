@@ -47,7 +47,8 @@ INCLUDE += -I$(EPID_SDK_DIR)                              \
            -I$(SGX_HEADER_DIR)/libcxx
 
 EXTERNAL_LIB += -L$(EPID_SDK_DIR)/epid/member -lmember \
-                -L$(EPID_SDK_DIR)/epid/common -lcommon
+                -L$(EPID_SDK_DIR)/epid/common -lcommon \
+		-L. -lwolftpm -l:libwolfssl.sgx.static.lib.a
 
 SRC := $(wildcard *.cpp)
 SRC += pve_qe_common.cpp             \
