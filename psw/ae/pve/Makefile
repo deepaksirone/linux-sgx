@@ -33,8 +33,8 @@ TOP_DIR := ../../..
 MITIGATION-CVE-2020-0551=LOAD
 include ../buildenv.mk
 
-CXXFLAGS  += -Werror
-CFLAGS	  += -Werror 
+CXXFLAGS  += -Wno-error=stringop-overflow -Werror
+CFLAGS	  += -Wno-error=stringop-overflow -Werror 
 AENAME = provision_enclave
 PVE_VER:= $(shell awk '$$2 ~ /PVE_VERSION/ { print substr($$3, 2, length($$3) - 2); }' $(COMMON_DIR)/inc/internal/se_version.h)
 
@@ -68,7 +68,7 @@ all: $(SONAME)
 .PHONY: EPID
 EPID:
 	cd $(EPID_SDK_DIR) && CFLAGS="$(EPID_CFLAGS)" CXXFLAGS="$(EPID_CXXFLAGS)" ./configure prefix=/usr/local
-	$(MAKE) -C $(EPID_SDK_DIR) 2> /dev/null
+	$(MAKE) -C $(EPID_SDK_DIR)
 
 $(SONAME): $(OBJS) EPID
 	$(CXX) $(CXXFLAGS) -o $@  $(OBJS)  -nostdlib -nodefaultlibs -nostartfiles -Wl,-soname=libsgx_$(AENAME).signed.so.$(call SPLIT_VERSION,$(PVE_VER),1) $(LDTFLAGS)
