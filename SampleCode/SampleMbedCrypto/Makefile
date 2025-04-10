@@ -39,7 +39,7 @@ NUM_PAD_PAGES ?= 1
 PADDING_TOOL ?= ./generate_large_array.py
 HIBE_ENCRYPTOR ?= hibe_encryptor
 HIBE_DEPTH ?= 5
-MAX_EPOCH_DEPTH ?= 5
+MAX_EPOCH_DEPTH ?= 2
 
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86

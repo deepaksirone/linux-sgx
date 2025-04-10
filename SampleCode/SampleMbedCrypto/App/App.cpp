@@ -253,6 +253,7 @@ int SGX_CDECL main(int argc, char *argv[])
     (void)(argc);
     (void)(argv);
     int result = 0xff;
+    std::cout << "SGX Debug Flag: " << SGX_DEBUG_FLAG << std::endl;
 
     /* Initialize the enclave */
     auto start1 = std::chrono::high_resolution_clock::now();
