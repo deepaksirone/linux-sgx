@@ -52,6 +52,7 @@ pve_status_t gen_prov_msg1_data(const sgx_target_info_t& pce_target_info,
 
 sgx_status_t bellerophon_gen_msg2_data(uint8_t *ciphertext, uint32_t ciphertext_size,
                 uint8_t *tag, uint32_t tag_len, uint8_t *iv, uint32_t iv_size, uint8_t *challenge);
+sgx_status_t bellerophon_store_hibe_key(uint8_t *enc_hibe_key, uint32_t enc_hibe_key_size, uint8_t *tag, uint32_t tag_len, uint8_t *iv, uint32_t iv_size);
 /*Function to process ProvMsg2 data and generate ProvMsg3 data in PvE
     return PVEC_SUCCESS on success
     return other value to indicate correpondent error*/

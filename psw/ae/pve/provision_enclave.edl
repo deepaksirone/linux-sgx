@@ -41,6 +41,9 @@ enclave{
 						   [in, size=tag_len] uint8_t *tag, uint32_t tag_len,
                 				   [in, size=iv_size] uint8_t *iv, uint32_t iv_size, 
 						   [out, size=ciphertext_len] uint8_t *challenge);
+	public uint32_t proc_msg6_data_wrapper([in, size=enc_hibe_key_len] uint8_t *enc_hibe_pvt_key, uint32_t enc_hibe_key_len, 
+					       [in, size=tag_len] uint8_t *tag, uint32_t tag_len,
+                			       [in, size=iv_size] uint8_t *iv, uint32_t iv_size);
 
         public uint32_t proc_prov_msg2_data_wrapper([in]const proc_prov_msg2_blob_input_t *msg2_input,
                                                     uint8_t performance_rekey_used,
@@ -53,4 +56,14 @@ enclave{
 
         public uint32_t gen_es_msg1_data_wrapper([out]gen_endpoint_selection_output_t *es_output); //output one byte selector
     };
+
+    untrusted {
+        void ocall_print_buffer([in] const unsigned char *buf, int len);
+        int untrusted_open([in, string] const char *path, int flags);
+        int untrusted_poll([in, out, size = bytes] struct pollfd *fds, nfds_t nfds, int timeout, size_t bytes);
+        ssize_t untrusted_read(int fd, [out, size = count] void *buf, size_t count);
+        int untrusted_close(int fd);
+        ssize_t untrusted_write(int fd, [in, size = count] const void *buf, size_t count);
+    };
+
 };
