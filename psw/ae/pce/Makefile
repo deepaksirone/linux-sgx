@@ -55,6 +55,12 @@ OBJS := $(sort $(OBJ) version.o)
 .PHONY: all
 all: $(SONAME)
 
+.PHONY: libsgx_pce_bellerophon.signed.so
+libsgx_pce_bellerophon.signed.so: all
+	@openssl genrsa -out test_key.pem -3 3072
+	@sgx_sign sign -key test_key.pem -enclave $(SONAME) -out $@ -config config.xml
+
+
 ifneq ($(SGX_MODE), HW)
 all: pce_sim_private_key.pem
 	$(SGXSIGN) sign -key pce_sim_private_key.pem -enclave $(SONAME) -out libsgx_$(AENAME).signed.so -config $(CONFIG)

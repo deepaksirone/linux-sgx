@@ -13,9 +13,7 @@
 #     distribution.
 #   * Neither the name of Intel Corporation nor the names of its
 #     contributors may be used to endorse or promote products derived
-#     from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#     from this software without specific prior written permission. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 # LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
 # A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
@@ -46,9 +44,10 @@ INCLUDE += -I$(EPID_SDK_DIR)                              \
            -I$(LINUX_PSW_DIR)/ae/inc/internal             \
            -I$(SGX_HEADER_DIR)/libcxx
 
+EXTRA_LIBS_DIR ?= ../../../SampleCode/SampleMbedCrypto/Enclave/bellerophon/decryption_enclave/lib/
 EXTERNAL_LIB += -L$(EPID_SDK_DIR)/epid/member -lmember \
                 -L$(EPID_SDK_DIR)/epid/common -lcommon \
-		-L. -lwolftpm -l:libwolfssl.sgx.static.lib.a
+		-L$(EXTRA_LIBS_DIR) -lwolftpm -l:libwolfssl.sgx.static.lib.a
 
 SRC := $(wildcard *.cpp)
 SRC += pve_qe_common.cpp             \
@@ -65,6 +64,11 @@ EPID_CXXFLAGS = $(filter-out $(EPID_FILTER),$(ENCLAVE_CXXFLAGS))
 
 .PHONY: all
 all: $(SONAME) 
+
+.PHONY: libsgx_pve_bellerophon.signed.so
+libsgx_pve_bellerophon.signed.so: all
+	@openssl genrsa -out test_key.pem -3 3072
+	@sgx_sign sign -key test_key.pem -enclave $(SONAME) -out $@ -config config.xml
 
 .PHONY: EPID
 EPID:
