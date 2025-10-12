@@ -38,7 +38,7 @@ extern "C"
 {	
 #else // Not C++, must define bool:
 
-typedef unsigned int bool;
+//typedef unsigned int bool;
 
 #endif // #ifdef __cplusplus
 
