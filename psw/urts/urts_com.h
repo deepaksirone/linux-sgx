@@ -525,14 +525,14 @@ sgx_status_t _create_enclave_from_buffer_ex(const bool debug, uint8_t *base_addr
     {
     
         // If no PCL feature request is input, the enclave should not be encrypted.
-        ret = SGX_ERROR_PCL_ENCRYPTED;
-        goto clean_return;
+        //ret = SGX_ERROR_PCL_ENCRYPTED;
+        //goto clean_return;
     }
     else if (res == 1 && parser.is_enclave_encrypted() != true)
     {
         // If PCL feature is requested, the enclave should be encrypted
-        ret = SGX_ERROR_PCL_NOT_ENCRYPTED;
-        goto clean_return;
+        //ret = SGX_ERROR_PCL_NOT_ENCRYPTED;
+        //goto clean_return;
     }
 
     if(SGX_SUCCESS != (ret = get_metadata(&parser, debug,  &metadata, &sgx_misc_attr)))
